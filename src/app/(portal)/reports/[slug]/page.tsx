@@ -1,11 +1,12 @@
 import { notFound } from "next/navigation"
 import { DownloadCsv } from "@/components/forms/download-csv"
-import { DateFilter, FilterBar } from "@/components/shared/filters"
+import { FilterBar, PeriodFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { api } from "@/lib/frappe/client"
 import { formatDate, formatKes, pageOf } from "@/lib/format"
 import type { ReportResult } from "@/lib/frappe/types"
+import { describeRange, readPeriod } from "@/lib/period"
 import { REPORTS } from "@/lib/reports"
 
 function display(value: string | number | null | undefined, type?: string) {
@@ -21,16 +22,17 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const report = REPORTS.find((entry) => entry.slug === slug)
   if (!report) notFound()
   const search = await searchParams
-  const { from = "2024-01-01", to = new Date().toISOString().slice(0, 10) } = search
+  const chosen = readPeriod(search)
   const { page, start, limit } = pageOf(search)
-  const data = await api<ReportResult>("report", { params: { slug, from_date: from, to_date: to } })
+  const data = await api<ReportResult>("report", { params: { slug, from_date: chosen?.from, to_date: chosen?.to } })
   const csv = [data.columns.map((column) => column.label), ...data.rows.map((row) => data.columns.map((column) => String(row[column.fieldname] ?? "")))]
   return (
     <div>
-      <PageHeader title={report.title} description={report.description} actions={<DownloadCsv filename={`${slug}-${from}-to-${to}.csv`} rows={csv} />} />
+      <PageHeader title={report.title} description={report.description} actions={<DownloadCsv filename={`${slug}-${data.from_date}-to-${data.to_date}.csv`} rows={csv} />} />
       {!report.noDates && (
         <FilterBar>
-          <DateFilter />
+          <PeriodFilter years={data.years} defaultLabel="All dates" />
+          <span className="text-sm text-muted-foreground">{describeRange(data.from_date, data.to_date)}</span>
         </FilterBar>
       )}
       <RecordTable

@@ -17,7 +17,7 @@ For production use `npm run build` and `npm start`, behind HTTPS. `SESSION_COOKI
 - Server code calls the versioned API at `/api/method/quality_care.api.v1.<endpoint>` (`src/lib/frappe/client.ts`). The browser never talks to Frappe directly.
 - Sign-in exchanges the password for OAuth Bearer tokens. They sit in an encrypted, httpOnly cookie, and `src/proxy.ts` refreshes them before they expire.
 - Every call runs as the signed-in person, so Frappe's roles decide what they can see and do. The menu only hides what the role can't reach, and the API is what enforces it.
-- "Open Full System" and "Open in Desk" go through a one-time key that lasts a minute, so people arrive in Desk already signed in.
+- Signing in also opens Desk: the browser passes through Frappe once for its cookie and comes straight back. This needs `portal_url` in the Frappe site config to match this app's address. "Open Full System" and "Open in Desk" use the same one-time key, and signing out closes Desk too.
 
 ## Password reset
 

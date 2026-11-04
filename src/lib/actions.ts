@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { cookieOptions, openSession, sealSession, SESSION_COOKIE, toSession, type TokenResponse } from "@/lib/auth/session"
 import { api, errorMessage, FrappeError } from "@/lib/frappe/client"
-import { API_BASE, siteHeaders } from "@/lib/frappe/config"
+import { API_BASE, FRAPPE_PUBLIC_URL, siteHeaders } from "@/lib/frappe/config"
 
 export type ActionResult<T = unknown> = { ok: true; data: T } | { ok: false; error: string }
 export type FormValues = Record<string, string | number | boolean | null | undefined>
@@ -62,7 +62,34 @@ export async function signIn(_: string | null, form: FormData): Promise<string |
   }
   ;(await cookies()).set(SESSION_COOKIE, await sealSession(toSession(tokens)), cookieOptions())
   // Only ever return to a page on this site.
-  redirect(next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard")
+  const page = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
+  redirect((await throughDesk(tokens.access_token, page)) ?? page)
+}
+
+/**
+ * Signing in opens Desk too. The browser has to visit Frappe once for its Desk cookie, so it passes
+ * through there and straight back here. If that can't be arranged, the portal still works and the
+ * Open Full System button still signs them in.
+ */
+async function throughDesk(token: string, page: string) {
+  try {
+    const request = await headers()
+    const host = request.get("x-forwarded-host") ?? request.get("host")
+    const scheme = request.get("x-forwarded-proto") ?? (process.env.NODE_ENV === "production" && process.env.SESSION_COOKIE_SECURE !== "false" ? "https" : "http")
+    const response = await fetch(`${API_BASE}.desk_link`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { ...siteHeaders, "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ return_to: `${scheme}://${host}${page}` }),
+    })
+    if (!response.ok) return null
+    const { message } = (await response.json()) as { message: { key: string } }
+    const target = new URL(`${FRAPPE_PUBLIC_URL}/api/method/quality_care.api.v1.open_desk`)
+    target.searchParams.set("key", message.key)
+    return target.toString()
+  } catch {
+    return null
+  }
 }
 
 export async function signOut() {

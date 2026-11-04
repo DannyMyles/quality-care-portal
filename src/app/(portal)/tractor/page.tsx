@@ -3,7 +3,7 @@ import { PeriodChart } from "@/components/charts/period-chart"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
 import { DeskLink } from "@/components/shared/desk-link"
-import { FilterBar, SearchFilter } from "@/components/shared/filters"
+import { FilterBar, PeriodFilter, SearchFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
@@ -13,6 +13,7 @@ import { createTractorInvoice, saveTractorLog } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes, pageOf } from "@/lib/format"
 import type { Overview, Page, Period, TractorLog } from "@/lib/frappe/types"
+import { describeRange, readPeriod } from "@/lib/period"
 
 const fields: FormField[] = [
   { name: "hire_date", label: "Date", type: "date", required: true, initial: new Date().toISOString().slice(0, 10) },
@@ -32,10 +33,15 @@ export default async function TractorPage({ searchParams }: { searchParams: Prom
   const me = await getMe()
   const data = await api<Page<TractorLog>>("tractor_logs", { params: { status: params.status, search: params.search, start, limit } })
   let profit: Period[] = []
-  let year = ""
+  let label = ""
+  let years: string[] = []
+  let latest = ""
   if (me.can.finance) {
-    const overview = await api<Overview>("overview")
-    year = overview.from_date.slice(0, 4)
+    const chosen = readPeriod(params)
+    const overview = await api<Overview>("overview", { params: chosen ? { from_date: chosen.from, to_date: chosen.to } : {} })
+    label = describeRange(overview.from_date, overview.to_date)
+    years = overview.years
+    latest = overview.from_date.slice(0, 4)
     profit = await api<Period[]>("tractor_profit", { params: { from_date: overview.from_date, to_date: overview.to_date } })
   }
   const columns: Column<TractorLog>[] = [
@@ -63,9 +69,16 @@ export default async function TractorPage({ searchParams }: { searchParams: Prom
   return (
     <div className="flex flex-col gap-2">
       <PageHeader title="Tractor Hire" description="Record each job, then turn it into an invoice." actions={add} />
-      {profit.length > 0 && (
-        <div className="mb-5">
-          <PeriodChart title="Tractor income and costs by month" subtitle={year} periods={profit} />
+      {me.can.finance && (
+        <div className="mb-5 flex flex-col gap-3">
+          <FilterBar>
+            <PeriodFilter years={years} defaultLabel={`Latest figures (${latest})`} />
+          </FilterBar>
+          {profit.length > 0 ? (
+            <PeriodChart title="Tractor income and costs by month" subtitle={label} periods={profit} />
+          ) : (
+            <p className="rounded-2xl border border-[#ECEEF7] bg-white px-4 py-6 text-center text-sm text-[#6A6C8C]">No tractor income or costs are posted for {label}.</p>
+          )}
         </div>
       )}
       <StatusTabs path="/tractor" current={params.status} keep={params} options={[{ value: "", label: "All" }, { value: "To Invoice", label: "To invoice" }, { value: "Invoiced", label: "Invoiced" }]} />

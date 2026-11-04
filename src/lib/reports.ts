@@ -19,7 +19,7 @@ export const REPORTS: PortalReport[] = [
   { slug: "profit-and-loss", group: "Accounts", title: "Profit and loss", description: "Income and costs by account", whole: true },
   { slug: "trial-balance", group: "Accounts", title: "Trial balance", description: "Every account's debits and credits", whole: true },
   { slug: "wht-on-bills", group: "Tax", title: "Withholding tax on bills", description: "For the KRA return, with supplier PINs" },
-  { slug: "trainer-wht", group: "Tax", title: "Trainer withholding tax, 2024", description: "From the workbook's November and December sheets" },
+  { slug: "trainer-wht", group: "Tax", title: "Trainer withholding tax", description: "Fees and tax per trainer, from the trainer payment records" },
   { slug: "unsigned-invoices", group: "Tax", title: "eTIMS unsigned invoices", description: "Submitted invoices not yet signed" },
   { slug: "course-summary", group: "Training", title: "Course summary", description: "Classes, trainees, certificates and fees per course" },
   { slug: "batch-income", group: "Training", title: "Class income", description: "Fees, invoiced amounts and balances per class" },
