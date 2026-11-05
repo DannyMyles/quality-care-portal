@@ -220,6 +220,15 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     await dlg(sole).getByRole("button", { name: "Save" }).click(); await dlg(sole).getByRole("alert").waitFor(); ok(/Role profile is needed/.test(await dlg(sole).getByRole("alert").innerText()), "a role profile must be ticked")
     await dlg(sole).getByLabel("Tractor Supervisor").check(); await dlg(sole).getByLabel("Quality Care Accounts").check(); await dlg(sole).getByLabel("Quality Care Accounts").uncheck(); await dlg(sole).getByLabel("Training Coordinator").check(); await saved(sole)
     await go(sole, "/team"); { const row = sole.locator("tr", { hasText: colleague }); const line = await row.innerText(); ok(line.includes("Portal Colleague") && line.includes("Tractor Supervisor") && line.includes("Training Coordinator") && !line.includes("Accounts") && line.includes("Never signed in"), "new colleague appears with the ticked profiles") }
+    // Standard prices
+    const setPrice = async (item, amount) => { await go(sole, "/services"); await sole.locator("tr", { hasText: item }).getByRole("button", { name: "Edit price" }).click(); await dlg(sole).locator("#standard_rate").fill(String(amount)); await saved(sole); await go(sole, "/services") }
+    await go(coord, "/services"); ok(await coord.getByRole("button", { name: "Edit price" }).count() === 0, "a coordinator doesn't see the price button")
+    await setPrice("Monthly Training", 4000); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("4,000"), "standard price shows"); await shot(sole, "81_prices", false)
+    await sole.locator("tr", { hasText: "Monthly Training" }).getByRole("button", { name: "Edit price" }).click(); ok(await dlg(sole).locator("#standard_rate").inputValue() === "4000", "price form reopens with what was saved"); await shot(sole, "82_price_form", false); await sole.keyboard.press("Escape")
+    await setPrice("Tractor Hire", 1500)
+    await go(sole, "/batches"); await sole.getByRole("button", { name: "New class" }).click(); await fillDialog(sole, { "Course": { pick: "Monthly Training" } }); ok(await dlg(sole).locator("#standard_fee").inputValue() === "4000", "a new class starts from the standard price"); await sole.keyboard.press("Escape")
+    await go(sole, "/tractor"); await sole.getByRole("button", { name: "Record job" }).click(); await fillDialog(sole, { "Service": { pick: "Tractor Hire" } }); ok(await dlg(sole).locator("#rate").inputValue() === "1500", "a tractor job starts from the standard price"); await sole.keyboard.press("Escape")
+    await setPrice("Monthly Training", 0); await setPrice("Tractor Hire", 0); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("Set per class or job"), "zero puts it back to set per class or job")
   }
 
   // Reports and roles

@@ -214,6 +214,7 @@ export const createSupplier = async (values: FormValues) => run<string>("create_
 export const updateSupplier = async (name: string, values: FormValues) => run<string>("update_supplier", { name, ...values })
 export const createEquipment = async (values: FormValues) => run<string>("create_equipment", clean(values))
 export const createTeamMember = async (values: FormValues) => run<{ name: string; invited: boolean }>("create_team_member", clean(values))
+export const setItemPrice = async (name: string, values: FormValues) => run<number>("set_item_price", { name, ...values })
 export const submitInvoice = async (name: string) => run("submit_invoice", { name })
 export const recordPayment = async (invoice: string, values: FormValues) => run("record_payment", { invoice, ...clean(values) })
 export const requestMpesa = async (invoice: string, values: FormValues) => run("request_mpesa", { invoice, ...clean(values) })
