@@ -16,13 +16,16 @@ import { lookup, type ActionResult, type FormValues } from "@/lib/actions"
 export interface FormField {
   name: string
   label: string
-  type?: "text" | "number" | "date" | "tel" | "email" | "select" | "lookup" | "textarea"
+  /** "checks" lets several options be ticked, and sends them joined by commas. */
+  type?: "text" | "number" | "date" | "tel" | "email" | "select" | "lookup" | "textarea" | "checks"
   required?: boolean
   options?: { value: string; label: string }[]
   /** The pick-list a lookup field searches. */
   lookup?: string
   /** Fill another field from the chosen option, such as the standard fee from the course. */
   fills?: { field: string; from: "standard_rate" | "outstanding_amount" }
+  /** Choosing one of these select options also sets another field, which can still be changed. */
+  presets?: Record<string, { field: string; value: string }>
   initial?: string | number
   hint?: string
   placeholder?: string
@@ -175,7 +178,15 @@ export function FormDialog({
                   {field.required && <span aria-hidden className="text-[#B5152A]"> *</span>}
                 </Label>
                 {field.type === "select" ? (
-                  <Select value={values[field.name]} onValueChange={(value) => set(field.name, String(value ?? ""))}>
+                  <Select
+                    value={values[field.name]}
+                    onValueChange={(value) => {
+                      const chosen = String(value ?? "")
+                      set(field.name, chosen)
+                      const preset = field.presets?.[chosen]
+                      if (preset) set(preset.field, preset.value)
+                    }}
+                  >
                     <SelectTrigger id={field.name} className="w-full">
                       <SelectValue placeholder="Choose">
                         {(value: string) => field.options?.find((option) => option.value === value)?.label ?? "Choose"}
@@ -189,6 +200,23 @@ export function FormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                ) : field.type === "checks" ? (
+                  <div className="flex flex-col gap-2">
+                    {field.options?.map((option) => {
+                      const ticked = values[field.name].split(",").filter(Boolean)
+                      return (
+                        <label key={option.value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-[#2E3094]"
+                            checked={ticked.includes(option.value)}
+                            onChange={(event) => set(field.name, (event.target.checked ? [...ticked, option.value] : ticked.filter((value) => value !== option.value)).join(","))}
+                          />
+                          {option.label}
+                        </label>
+                      )
+                    })}
+                  </div>
                 ) : field.type === "lookup" ? (
                   <LookupInput
                     field={field}

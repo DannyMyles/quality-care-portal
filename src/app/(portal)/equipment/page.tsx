@@ -1,13 +1,15 @@
 import { RankedBars } from "@/components/charts/bars"
 import { ChartCard } from "@/components/charts/chart-card"
 import { InfoIcon, Wrench } from "@/components/icons"
+import { FormDialog, type FormField } from "@/components/forms/form-dialog"
 import { DeskLink } from "@/components/shared/desk-link"
 import { FilterBar, SearchFilter } from "@/components/shared/filters"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusTabs } from "@/components/shared/status-tabs"
-import { api } from "@/lib/frappe/client"
+import { createEquipment } from "@/lib/actions"
+import { api, getMe } from "@/lib/frappe/client"
 import { compactKes, formatDate, formatKes, pageOf } from "@/lib/format"
 import type { Page } from "@/lib/frappe/types"
 
@@ -23,12 +25,24 @@ interface Asset {
 export default async function EquipmentPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
-  const data = await api<Page<Asset> & { categories: { category: string; count: number; value: number }[] }>("equipment", { params: { category: params.category, search: params.search, start, limit } })
+  const me = await getMe()
+  const data = await api<Page<Asset> & { categories: { category: string; count: number; value: number }[]; options: { categories: string[]; locations: string[] } }>("equipment", { params: { category: params.category, search: params.search, start, limit } })
+  const choices = (values: string[]) => values.map((value) => ({ value, label: value }))
+  const fields: FormField[] = [
+    { name: "asset_name", label: "Item", required: true, full: true, placeholder: "Adult Manikin #76" },
+    { name: "asset_category", label: "Category", type: "select", required: true, options: choices(data.options.categories) },
+    { name: "location", label: "Location", type: "select", required: true, initial: data.options.locations.length === 1 ? data.options.locations[0] : undefined, options: choices(data.options.locations) },
+    { name: "purchase_date", label: "Bought on", type: "date", required: true },
+    { name: "value", label: "Cost (KES)", type: "number", required: true },
+    { name: "bought_from", label: "Bought from" },
+    { name: "serial_number", label: "Serial number" },
+  ]
+  const add = me.can.add_equipment ? <FormDialog title="New equipment" description="This adds the item to the register. Nothing posts to the books." triggerLabel="New equipment" success="Equipment saved" fields={fields} action={createEquipment} /> : null
   const total = data.categories.reduce((sum, row) => sum + row.value, 0)
   const count = data.categories.reduce((sum, row) => sum + row.count, 0)
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="Equipment" description="Training equipment and office items owned by Quality Care." />
+      <PageHeader title="Equipment" description="Training equipment and office items owned by Quality Care." actions={add} />
       <p className="flex items-start gap-2.5 rounded-xl bg-[#00A3E0]/10 px-4 py-3 text-sm">
         <InfoIcon className="mt-0.5 size-4 shrink-0 text-[#0078A8]" />
         This is a register for now. Its value isn&apos;t on the balance sheet until the accountant decides the opening entry.

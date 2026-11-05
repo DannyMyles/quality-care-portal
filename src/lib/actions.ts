@@ -209,6 +209,11 @@ export const certificateAction = async (name: string, action: string) => run("ce
 export const saveTractorLog = async (values: FormValues) => run<string>("save_tractor_log", { data: clean(values) })
 export const createTractorInvoice = async (name: string) => run<string>("create_tractor_invoice", { name })
 export const createCustomer = async (values: FormValues) => run<string>("create_customer", clean(values))
+export const createSupplier = async (values: FormValues) => run<string>("create_supplier", clean(values))
+// Not cleaned: a blank PIN here means clear it.
+export const updateSupplier = async (name: string, values: FormValues) => run<string>("update_supplier", { name, ...values })
+export const createEquipment = async (values: FormValues) => run<string>("create_equipment", clean(values))
+export const createTeamMember = async (values: FormValues) => run<{ name: string; invited: boolean }>("create_team_member", clean(values))
 export const submitInvoice = async (name: string) => run("submit_invoice", { name })
 export const recordPayment = async (invoice: string, values: FormValues) => run("record_payment", { invoice, ...clean(values) })
 export const requestMpesa = async (invoice: string, values: FormValues) => run("request_mpesa", { invoice, ...clean(values) })

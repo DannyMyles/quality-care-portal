@@ -10,6 +10,9 @@ export interface Can {
   edit_tractor: boolean
   customers: boolean
   edit_customers: boolean
+  add_suppliers: boolean
+  edit_suppliers: boolean
+  add_equipment: boolean
   invoices: boolean
   submit_invoices: boolean
   payments: boolean
