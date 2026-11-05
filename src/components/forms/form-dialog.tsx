@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ComponentProps } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Plus } from "@/components/icons"
+import { Pencil, Plus } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -16,13 +16,16 @@ import { lookup, type ActionResult, type FormValues } from "@/lib/actions"
 export interface FormField {
   name: string
   label: string
-  type?: "text" | "number" | "date" | "tel" | "email" | "select" | "lookup" | "textarea"
+  /** "checks" lets several options be ticked, and sends them joined by commas. */
+  type?: "text" | "number" | "date" | "tel" | "email" | "select" | "lookup" | "textarea" | "checks"
   required?: boolean
   options?: { value: string; label: string }[]
   /** The pick-list a lookup field searches. */
   lookup?: string
   /** Fill another field from the chosen option, such as the standard fee from the course. */
   fills?: { field: string; from: "standard_rate" | "outstanding_amount" }
+  /** Choosing one of these select options also sets another field, which can still be changed. */
+  presets?: Record<string, { field: string; value: string }>
   initial?: string | number
   hint?: string
   placeholder?: string
@@ -108,6 +111,7 @@ export function FormDialog({
   action,
   goTo,
   showPlus = true,
+  trigger = "label",
   variant,
   size,
 }: {
@@ -120,6 +124,8 @@ export function FormDialog({
   action: (values: FormValues) => Promise<ActionResult>
   goTo?: string
   showPlus?: boolean
+  /** "label" is an ordinary button. "add" shows only a plus until hovered or focused, and "edit" is a pencil. */
+  trigger?: "label" | "add" | "edit"
   variant?: ComponentProps<typeof Button>["variant"]
   size?: ComponentProps<typeof Button>["size"]
 }) {
@@ -157,10 +163,24 @@ export function FormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant={variant} size={size} />}>
-        {showPlus && <Plus className="size-4" />}
-        {triggerLabel}
-      </DialogTrigger>
+      {trigger === "edit" ? (
+        <DialogTrigger render={<Button variant="outline" size="icon-sm" aria-label={title} />}>
+          <Pencil className="size-4 text-[#2E3094]" />
+        </DialogTrigger>
+      ) : trigger === "add" ? (
+        <DialogTrigger render={<Button variant={variant} size={size} aria-label={triggerLabel} title={triggerLabel} className="gap-0 px-3" />}>
+          <Plus className="size-4" />
+          {/* Touch screens can't hover, so they keep the label. */}
+          <span className="max-w-0 overflow-hidden opacity-0 transition-all duration-200 group-hover/button:ml-2 group-hover/button:max-w-52 group-hover/button:opacity-100 group-focus-visible/button:ml-2 group-focus-visible/button:max-w-52 group-focus-visible/button:opacity-100 motion-reduce:transition-none [@media(hover:none)]:ml-2 [@media(hover:none)]:max-w-52 [@media(hover:none)]:opacity-100">
+            {triggerLabel}
+          </span>
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger render={<Button variant={variant} size={size} />}>
+          {showPlus && <Plus className="size-4" />}
+          {triggerLabel}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-xl">
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>
@@ -175,7 +195,15 @@ export function FormDialog({
                   {field.required && <span aria-hidden className="text-[#B5152A]"> *</span>}
                 </Label>
                 {field.type === "select" ? (
-                  <Select value={values[field.name]} onValueChange={(value) => set(field.name, String(value ?? ""))}>
+                  <Select
+                    value={values[field.name]}
+                    onValueChange={(value) => {
+                      const chosen = String(value ?? "")
+                      set(field.name, chosen)
+                      const preset = field.presets?.[chosen]
+                      if (preset) set(preset.field, preset.value)
+                    }}
+                  >
                     <SelectTrigger id={field.name} className="w-full">
                       <SelectValue placeholder="Choose">
                         {(value: string) => field.options?.find((option) => option.value === value)?.label ?? "Choose"}
@@ -189,6 +217,23 @@ export function FormDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                ) : field.type === "checks" ? (
+                  <div className="flex flex-col gap-2">
+                    {field.options?.map((option) => {
+                      const ticked = values[field.name].split(",").filter(Boolean)
+                      return (
+                        <label key={option.value} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            className="size-4 accent-[#2E3094]"
+                            checked={ticked.includes(option.value)}
+                            onChange={(event) => set(field.name, (event.target.checked ? [...ticked, option.value] : ticked.filter((value) => value !== option.value)).join(","))}
+                          />
+                          {option.label}
+                        </label>
+                      )
+                    })}
+                  </div>
                 ) : field.type === "lookup" ? (
                   <LookupInput
                     field={field}

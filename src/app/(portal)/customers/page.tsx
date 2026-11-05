@@ -28,7 +28,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     ...(me.can.finance ? [{ header: "Owes", align: "right" as const, cell: (row: Customer) => formatKes(row.balance) }] : []),
     ...(me.can.invoices ? [{ header: "Invoices", cell: (row: Customer) => <Link prefetch={false} className="font-medium text-[#2E3094] hover:underline" href={`/invoices?customer=${encodeURIComponent(row.name)}`}>View</Link> }] : []),
   ]
-  const add = me.can.edit_customers ? <FormDialog title="New customer" triggerLabel="New customer" success="Customer saved" fields={fields} action={createCustomer} /> : null
+  const add = me.can.edit_customers ? <FormDialog title="New customer" triggerLabel="New customer" trigger="add" success="Customer saved" fields={fields} action={createCustomer} /> : null
   return (
     <div>
       <PageHeader title="Customers" description="Sponsors, hospitals, self-paying trainees and tractor customers." actions={add} />

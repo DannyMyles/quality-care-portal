@@ -70,7 +70,7 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
               {progress.to_certify > 0 && <ActionButton variant="outline" label={`Request certificates (${progress.to_certify})`} success="Sent to the Director for approval" action={requestBatchCertificates.bind(null, name)} />}
               <FormDialog
                 title="Add a trainee"
-                triggerLabel="Add trainee"
+                triggerLabel="Add trainee" trigger="add"
                 success="Trainee added"
                 fields={[
                   { name: "trainee", label: "Trainee", type: "lookup", lookup: "trainee", required: true, full: true },

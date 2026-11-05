@@ -1,4 +1,5 @@
 import { PortalShell } from "@/components/layout/portal-shell"
+import { LiveRefresh } from "@/components/shared/live-refresh"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatKes } from "@/lib/format"
 import type { WorkQueue } from "@/lib/frappe/types"
@@ -19,6 +20,7 @@ export default async function PortalLayout({ children }: { children: React.React
         href: item.href,
       }))}
     >
+      <LiveRefresh />
       {children}
     </PortalShell>
   )

@@ -5,57 +5,106 @@ import { ChartCard } from "@/components/charts/chart-card"
 import { DonutCard, type DonutSlice } from "@/components/charts/donut"
 import { CERTIFICATE_COLOURS, CLASS_COLOURS, LINE_ORDER, lineColour } from "@/components/charts/palette"
 import { PeriodChart } from "@/components/charts/period-chart"
-import { SelectFilter } from "@/components/shared/filters"
+import { DashboardHeader } from "@/components/dashboard/dashboard-header"
+import { QuoteCard } from "@/components/dashboard/quote-card"
+import { PeriodFilter } from "@/components/shared/filters"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { api, getMe } from "@/lib/frappe/client"
 import { compactKes, formatDate, formatKes } from "@/lib/format"
 import type { Me, Overview, QueueItem, WorkQueue } from "@/lib/frappe/types"
+import { describeRange, readPeriod, todayIso } from "@/lib/period"
+import { getRandomQuote } from "@/lib/quote"
 import { cn } from "@/lib/utils"
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ year?: string }> }) {
-  const { year } = await searchParams
-  const me = await getMe()
-  const queue = await api<WorkQueue>("work_queue")
-  const overview = me.can.finance
-    ? await api<Overview>("overview", { params: year ? { from_date: `${year}-01-01`, to_date: `${year}-12-31` } : {} })
-    : null
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
+  const chosen = readPeriod(await searchParams)
+  const [me, quote] = await Promise.all([getMe(), getRandomQuote()])
+  const overview = me.can.finance ? await api<Overview>("overview", { params: chosen ? { from_date: chosen.from, to_date: chosen.to } : {} }) : null
+  const today = todayIso()
+  const range = overview ? { from: overview.from_date, to: overview.to_date } : chosen ?? { from: `${today.slice(0, 4)}-01-01`, to: today }
+  const queue = await api<WorkQueue>("work_queue", { params: { from_date: range.from, to_date: range.to } })
+  const label = describeRange(range.from, range.to)
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-[26px] leading-tight tracking-tight text-[#12133D]">Good to see you, {me.full_name.split(" ")[0]}</h1>
-          <p className="mt-1 text-sm text-[#6A6C8C]">{overview ? "How Quality Care is doing, and what needs you next." : "Your work at a glance."}</p>
-        </div>
-        {overview && overview.years.length > 1 && (
-          <SelectFilter param="year" placeholder={`Latest (${overview.years[0]})`} options={overview.years.map((value) => ({ value, label: value }))} className="w-44" />
-        )}
-      </div>
-      {overview ? <FinanceView overview={overview} queue={queue} me={me} /> : <WorkView queue={queue} />}
+      <DashboardHeader
+        firstName={me.full_name.split(" ")[0]}
+        subtitle={overview ? "How Quality Care is doing, and what needs you next." : "Your work at a glance."}
+        actions={<PeriodFilter years={queue.years} defaultLabel={overview ? `Latest figures (${overview.from_date.slice(0, 4)})` : "This year"} />}
+        quote={<QuoteCard quote={quote} />}
+      />
+      {overview ? <FinanceView overview={overview} queue={queue} me={me} label={label} /> : <WorkView queue={queue} label={label} />}
     </div>
   )
 }
 
-function FinanceView({ overview, queue, me }: { overview: Overview; queue: WorkQueue; me: Me }) {
-  const { totals, business_lines: lines } = overview
-  const year = overview.from_date.slice(0, 4)
+/** "Up 12% on 2023", or nothing when there's no fair comparison. */
+function change(current: number, previous: number | undefined, label: string) {
+  if (!previous) return undefined
+  const percent = Math.round(((current - previous) / Math.abs(previous)) * 100)
+  if (percent === 0) return `Same as ${label}`
+  return `${percent > 0 ? "Up" : "Down"} ${Math.abs(percent)}% on ${label}`
+}
+
+function FinanceView({ overview, queue, me, label }: { overview: Overview; queue: WorkQueue; me: Me; label: string }) {
+  const { totals, previous } = overview
+  const before = previous ? describeRange(previous.from_date, previous.to_date) : ""
   return (
     <>
-      <section aria-label={`Summary for ${year}`} className="relative overflow-hidden rounded-3xl bg-[#14154F] p-6 text-white shadow-[0_10px_40px_rgba(46,48,148,0.28)] sm:p-8">
+      <section aria-label={`Summary for ${label}`} className="relative overflow-hidden rounded-3xl bg-[#14154F] p-6 text-white shadow-[0_10px_40px_rgba(46,48,148,0.28)] sm:p-8">
         <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_85%_0%,rgba(0,163,224,0.45),transparent_50%),radial-gradient(circle_at_0%_100%,rgba(61,72,200,0.7),transparent_55%)]" />
         <div className="relative grid gap-8 lg:grid-cols-[1.4fr_1fr_1fr_1fr] lg:items-end">
           <div>
-            <p className="text-sm text-white/75">{totals.profit < 0 ? "Net loss" : "Net profit"}, {year}</p>
+            <p className="text-sm text-white/75">{totals.profit < 0 ? "Net loss" : "Net profit"}, {label}</p>
             <p className="mt-1 font-heading text-4xl font-bold tracking-tight tabular-nums sm:text-[44px]">{formatKes(Math.abs(totals.profit))}</p>
+            {previous && <p className="mt-1 text-xs text-white/75">{change(totals.profit, previous.profit, before)}</p>}
           </div>
-          <HeroStat label="Income" value={compactKes(totals.income)} full={formatKes(totals.income)} />
-          <HeroStat label="Expenses" value={compactKes(totals.expenses)} full={formatKes(totals.expenses)} />
+          <HeroStat label="Income" value={compactKes(totals.income)} full={formatKes(totals.income)} note={change(totals.income, previous?.income, before)} />
+          <HeroStat label="Expenses" value={compactKes(totals.expenses)} full={formatKes(totals.expenses)} note={change(totals.expenses, previous?.expenses, before)} />
           <HeroStat label="Kept from each KES 100 earned" value={totals.margin === null ? "—" : `KES ${Math.round(totals.margin)}`} />
         </div>
       </section>
 
+      {overview.notes.map((note) => (
+        <p key={note} className="flex gap-2.5 rounded-2xl bg-[#FFF8DF] px-4 py-3 text-[13px] text-[#755A00]">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          {note}
+        </p>
+      ))}
+
+      <InPeriodTiles queue={queue} label={label} />
+
+      {overview.has_figures ? (
+        <FinanceCharts overview={overview} queue={queue} me={me} label={label} />
+      ) : (
+        <div className="grid gap-6 xl:grid-cols-3">
+          <ChartCard title={`No figures for ${label} yet`} subtitle="Nothing has been posted to the books for these dates" className="xl:col-span-2">
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <span className="flex size-12 items-center justify-center rounded-full bg-[#2E3094]/10 text-[#2E3094]">
+                <Calendar className="size-6" />
+              </span>
+              <p className="max-w-md text-sm text-[#6A6C8C]">
+                {overview.years_with_figures.length ? `The books currently hold figures for ${overview.years_with_figures.join(", ")}. ` : ""}
+                Once entries are posted for this period, they&apos;ll show here on their own.
+              </p>
+            </div>
+          </ChartCard>
+          <WorkQueuePanel items={queue.items} />
+        </div>
+      )}
+
+      <ActivityTiles activity={queue.activity} />
+      <StatusDonuts activity={queue.activity} />
+    </>
+  )
+}
+
+function FinanceCharts({ overview, queue, me, label }: { overview: Overview; queue: WorkQueue; me: Me; label: string }) {
+  const { totals, business_lines: lines } = overview
+  return (
+    <>
       <div className="grid gap-6 xl:grid-cols-3">
-        <PeriodChart periods={overview.periods} title="Income and expenses by month" subtitle={`Monthly comparison for ${year}`} className="xl:col-span-2" />
+        <PeriodChart periods={overview.periods} title="Income and expenses by month" subtitle={`Monthly comparison for ${label}`} className="xl:col-span-2" />
         <WorkQueuePanel items={queue.items} />
       </div>
 
@@ -93,7 +142,7 @@ function FinanceView({ overview, queue, me }: { overview: Overview; queue: WorkQ
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <ChartCard title="What the numbers say" subtitle={`Worked out from ${year}'s figures`}>
+        <ChartCard title="What the numbers say" subtitle={`Worked out from the figures for ${label}`}>
           <ul className="flex flex-col gap-3">
             {overview.insights.map((insight) => (
               <li key={insight.title} className="flex gap-2.5 text-[13px]">
@@ -131,11 +180,19 @@ function FinanceView({ overview, queue, me }: { overview: Overview; queue: WorkQ
           </ChartCard>
         )}
       </div>
-
-      <ActivityTiles activity={queue.activity} />
-      <StatusDonuts activity={queue.activity} />
     </>
   )
+}
+
+function InPeriodTiles({ queue, label }: { queue: WorkQueue; label: string }) {
+  const period = queue.in_period
+  if (!period || !Object.values(period).some(Boolean)) return null
+  const tiles = [
+    period.classes !== undefined && <KpiCard key="classes" label={`Classes started, ${label}`} value={period.classes} icon={Calendar} iconTint="emerald" helperText={`${period.trainees ?? 0} trainees`} />,
+    period.certificates !== undefined && <KpiCard key="certificates" label={`Certificates issued, ${label}`} value={period.certificates} icon={Award} iconTint="amber" />,
+    period.tractor_jobs !== undefined && <KpiCard key="tractor" label={`Tractor jobs, ${label}`} value={period.tractor_jobs} icon={Tractor} iconTint="cyan" helperText={formatKes(period.tractor_value ?? 0)} />,
+  ].filter(Boolean)
+  return <div className="grid gap-5 sm:grid-cols-3">{tiles}</div>
 }
 
 function lineSlices(lines: Overview["business_lines"], key: "income" | "expenses"): DonutSlice[] {
@@ -163,19 +220,21 @@ function StatusDonuts({ activity }: { activity: WorkQueue["activity"] }) {
   )
 }
 
-function HeroStat({ label, value, full }: { label: string; value: string; full?: string }) {
+function HeroStat({ label, value, full, note }: { label: string; value: string; full?: string; note?: string }) {
   return (
     <div title={full}>
       <p className="text-sm text-white/75">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{value}</p>
+      {note && <p className="mt-1 text-xs text-white/75">{note}</p>}
     </div>
   )
 }
 
-function WorkView({ queue }: { queue: WorkQueue }) {
+function WorkView({ queue, label }: { queue: WorkQueue; label: string }) {
   const upcoming = queue.activity.upcoming ?? []
   return (
     <>
+      <InPeriodTiles queue={queue} label={label} />
       <ActivityTiles activity={queue.activity} />
       <StatusDonuts activity={queue.activity} />
       <div className="grid gap-6 lg:grid-cols-2">

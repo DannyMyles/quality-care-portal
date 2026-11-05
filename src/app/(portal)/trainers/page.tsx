@@ -1,6 +1,7 @@
 import { RankedBars } from "@/components/charts/bars"
 import { ChartCard } from "@/components/charts/chart-card"
 import { Teacher, Wallet, ReceiptText } from "@/components/icons"
+import { FilterBar, PeriodFilter } from "@/components/shared/filters"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
@@ -8,6 +9,7 @@ import { StatusTabs } from "@/components/shared/status-tabs"
 import { api } from "@/lib/frappe/client"
 import { compactKes, formatDate, formatKes, pageOf } from "@/lib/format"
 import type { Page } from "@/lib/frappe/types"
+import { describeRange, readPeriod } from "@/lib/period"
 
 interface Row {
   name: string
@@ -23,16 +25,23 @@ interface Row {
 interface Data extends Page<Row> {
   summary: { trainer: string; pin?: string; due: number; wht: number; net: number; paid: number }[]
   months: { period: string; due: number; wht: number }[]
+  recorded: { first: string; last: string } | null
+  years: string[]
 }
 
 export default async function TrainersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
-  const data = await api<Data>("trainers", { params: { trainer: params.trainer, start, limit } })
+  const chosen = readPeriod(params)
+  const data = await api<Data>("trainers", { params: { trainer: params.trainer, start, limit, from_date: chosen?.from, to_date: chosen?.to } })
+  const held = data.recorded ? `Records run from ${describeRange(data.recorded.first, data.recorded.last)}. ` : ""
   const sum = (key: "due" | "wht" | "paid") => data.summary.reduce((total, row) => total + row[key], 0)
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Trainers & WHT" description="Trainer fees and 5% withholding tax, from the workbook's November and December 2024 sheets. These records don't post to the ledger." />
+      <PageHeader title="Trainers & WHT" description={`Trainer fees and 5% withholding tax. ${held}These records don't post to the ledger.`} />
+      <FilterBar>
+        <PeriodFilter years={data.years} defaultLabel="All records" />
+      </FilterBar>
       <div className="grid gap-5 sm:grid-cols-3">
         <KpiCard label="Fees, before tax" value={formatKes(sum("due"))} icon={Teacher} />
         <KpiCard label="Withholding tax at 5%" value={formatKes(sum("wht"))} icon={ReceiptText} iconTint="amber" />

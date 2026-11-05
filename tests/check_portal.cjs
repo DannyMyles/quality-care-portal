@@ -18,6 +18,9 @@ async function session(browser, email, viewport = { width: 1440, height: 900 }) 
 const shot = (p, n, full = true) => p.screenshot({ path: `${SHOTS}/${n}.png`, fullPage: full })
 const go = async (p, path) => { await p.goto(BASE + path); await p.waitForLoadState("networkidle") }
 const toasted = (p, text) => p.getByText(text, { exact: false }).first().waitFor({ timeout: 25000 })
+const dlg = (p) => p.getByRole("dialog")
+const choose = async (p, id, name) => { await dlg(p).locator("#" + id).click(); await p.getByRole("option", { name, exact: true }).click() }
+const saved = async (p) => { await dlg(p).getByRole("button", { name: "Save" }).click(); await dlg(p).waitFor({ state: "hidden", timeout: 25000 }); await p.waitForLoadState("networkidle") }
 async function fillDialog(p, values) {
   for (const [label, v] of Object.entries(values)) {
     const d = p.getByRole("dialog")
@@ -147,6 +150,21 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
   await sole.getByRole("link", { name: /ACC-JV-/ }).first().click(); await sole.waitForURL(/\/books\/journals\/ACC-JV/); await sole.waitForLoadState("networkidle"); ok((await sole.locator("main").innerText()).includes("Opening Balance Equity"), "journal entry opens with its lines"); await shot(sole, "54_journal", false)
   await go(sole, "/suppliers"); text = await sole.locator("main").innerText(); ok(text.includes("Eric") && text.includes("A005185947X"), "suppliers show trainers and PINs"); await shot(sole, "55_suppliers", false)
   await go(sole, "/services"); text = await sole.locator("main").innerText(); ok(text.includes("Monthly Training") && text.includes("Trainer Fee") && text.includes("Tractor Hire"), "courses and services listed"); await shot(sole, "56_services", false)
+  // Greeting, clock, quote and the period picker
+  await go(sole, "/dashboard"); {
+    const heading = await sole.locator("h1").first().innerText(); ok(/^(Good (morning|afternoon|evening)|Welcome), /.test(heading), "dashboard greets by time of day")
+    ok(/\d\d:\d\d/.test(await sole.getByRole("timer").innerText()), "clock shows the time")
+    const first = await sole.getByRole("timer").innerText(); await sole.waitForTimeout(2100); ok(first !== await sole.getByRole("timer").innerText(), "clock is ticking")
+    ok((await sole.locator("blockquote").innerText()).length > 5, "a quote shows")
+    await sole.getByRole("combobox", { name: "Period" }).click(); const options = await sole.getByRole("option").allInnerTexts(); ok(["This month", "This quarter", "This year", "Last year", "Last 12 months", "2024", "2025", "Custom dates"].every((x) => options.includes(x)), "picker offers presets, every year and custom dates")
+    await sole.getByRole("option", { name: "2025", exact: true }).click(); await sole.waitForURL(/year=2025/); await sole.getByText("No figures for 2025 yet").waitFor(); let text = await sole.locator("main").innerText(); ok(text.includes("Net profit, 2025") && /hold figures for .*2024/.test(text), "a year with no postings says so")
+    await go(sole, "/dashboard?from=2024-11-01&to=2024-11-30"); text = await sole.locator("main").innerText(); ok(text.includes("Nov 2024") && /(Up|Down) \d+% on Oct 2024/.test(text), "one month shows, with the month before to compare"); ok(await sole.locator('input[aria-label="From date"]').count() === 1, "custom dates stay visible")
+    await go(sole, "/dashboard?from=2024-01-01&to=2024-03-31"); ok((await sole.locator("main").innerText()).includes("can't be split by month"), "part of the lump warns")
+    await go(sole, "/dashboard?year=nonsense"); ok(/Net profit, \d{4}/.test(await sole.locator("main").innerText()) && !(await sole.locator("main").innerText()).includes("nonsense"), "a bad year falls back to the latest figures")
+    await go(sole, "/tractor?year=2025"); ok((await sole.locator("main").innerText()).includes("No tractor income or costs are posted for 2025"), "tractor chart follows the period")
+    await go(sole, "/trainers"); ok(/Records run from .*2024/.test(await sole.locator("main").innerText()), "trainers say what's on record, from the data")
+    await go(sole, "/reports/business-line-profit?year=2024"); ok(await sole.getByRole("combobox", { name: "Period" }).count() === 1, "reports use the same picker")
+  }
   await go(sole, "/dashboard?year=2024"); ok((await sole.locator("main").innerText()).includes("What brings the money in"), "dashboard shows income by category")
   await go(coord, "/books"); await coord.getByText("This isn't part of your role").waitFor({ timeout: 10000 }).then(() => ok(true, "coordinator refused the books")).catch(() => ok(false, "coordinator refused the books"))
 
@@ -178,8 +196,43 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     const name = decodeURIComponent(link.split("/")[2]); const code = (await (await fetch(FRAPPE + "/api/resource/Certificate Register/" + name, { headers: { Authorization: "Bearer " + token } })).json()).data.verification_code
     const pub = await browser.newContext({ viewport: { width: 390, height: 844 } }); const v = await pub.newPage(); await v.goto(BASE + "/verify/" + code); text = await v.locator("body").innerText(); await shot(v, "72_verify", false); ok(text.includes("This certificate is valid") && text.includes(importName) && text.includes("15 Mar 2030"), "QR page works on a phone with no sign-in"); ok(!text.includes("EX" + RUN), "it doesn't show the ID number")
     await v.goto(BASE + "/verify/madeup" + RUN); ok((await v.locator("body").innerText()).includes("Certificate not found"), "made-up code says not found"); await pub.close()
-    await go(sole, "/team"); await shot(sole, "73_team", false); text = await sole.locator("main").innerText(); ok(text.includes("coord@test.local") && text.includes("Email isn't set up yet"), "team page lists people and flags email"); await sole.getByRole("button", { name: "Send", exact: true }).first().click(); await sole.getByRole("alertdialog").getByRole("button", { name: "Send", exact: true }).click(); await toasted(sole, "nothing can be sent"); ok(true, "sending without email gives a clear message")
+    await go(sole, "/team"); await shot(sole, "73_team", false); text = await sole.locator("main").innerText(); ok(text.includes("coord@test.local") && text.includes("Email isn't set up yet"), "team page lists people and flags email"); await sole.getByRole("button", { name: /^Send/ }).first().click(); await sole.getByRole("alertdialog").getByRole("button", { name: /^Send/ }).click(); await toasted(sole, "nothing can be sent"); ok(true, "sending without email gives a clear message")
     await go(coord, "/team"); ok(/isn't part of your role/.test(await coord.content()), "coordinator refused the team page")
+    // Adding suppliers, equipment and team members
+    const vendor = "Portal Vendor " + RUN, vendorPin = "V" + RUN + "123W", vendor2 = vendor + " Two"
+    await go(sole, "/suppliers"); await sole.getByRole("button", { name: "New supplier" }).click(); await shot(sole, "76_new_supplier", false)
+    await dlg(sole).locator("#supplier_name").fill(vendor); await dlg(sole).locator("#tax_id").fill("nonsense"); await choose(sole, "supplier_group", "Trainers")
+    ok((await dlg(sole).locator("#tax_withholding_category").innerText()).includes("WHT 5%"), "choosing Trainers selects the 5% withholding tax")
+    await dlg(sole).getByRole("button", { name: "Save" }).click(); await dlg(sole).getByRole("alert").waitFor(); ok(/letter, nine digits/.test(await dlg(sole).getByRole("alert").innerText()), "a bad PIN shows a clear message in the form")
+    await dlg(sole).locator("#tax_id").fill(vendorPin); await saved(sole)
+    await go(sole, "/suppliers?search=" + encodeURIComponent(vendor)); text = await sole.locator("main").innerText(); ok(text.includes(vendor) && text.includes(vendorPin) && text.includes("WHT 5%"), "new supplier appears in the list"); await shot(sole, "77_suppliers_edit", false)
+    await sole.getByRole("button", { name: "Edit" }).click(); ok(await dlg(sole).locator("#tax_id").inputValue() === vendorPin && await dlg(sole).locator("#supplier_name").inputValue() === vendor, "edit form opens with the saved values")
+    await dlg(sole).locator("#supplier_name").fill(vendor2); await dlg(sole).locator("#tax_id").fill(""); await choose(sole, "tax_withholding_category", "None"); await saved(sole)
+    await go(sole, "/suppliers?search=" + encodeURIComponent(vendor2)); text = await sole.locator("main").innerText(); ok(text.includes(vendor2) && !text.includes(vendorPin) && !text.includes("WHT 5%"), "edits show, with the PIN and withholding tax cleared")
+    await sole.getByRole("button", { name: "Edit" }).click(); ok(await dlg(sole).locator("#supplier_name").inputValue() === vendor2 && await dlg(sole).locator("#tax_id").inputValue() === "", "edit form reopens with what was just saved"); await sole.keyboard.press("Escape")
+    await go(dir, "/suppliers"); ok(await dir.getByRole("button", { name: "New supplier" }).count() === 1, "a Director can add suppliers")
+    await go(acct, "/suppliers"); ok(await acct.getByRole("button", { name: "New supplier" }).count() === 0 && await acct.getByRole("button", { name: "Edit" }).count() === 0, "accounts staff don't see the supplier buttons")
+    await go(dir, "/equipment"); ok(await dir.getByRole("button", { name: "New equipment" }).count() === 0, "a Director doesn't see the equipment button")
+    const colleague = "portal" + RUN + "@test.local"
+    await go(sole, "/team"); await sole.getByRole("button", { name: "New team member" }).click(); await shot(sole, "79_new_member", false)
+    text = await dlg(sole).innerText(); ok(text.includes("Training Coordinator") && text.includes("Quality Care Accounts"), "the form offers Desk's role profiles"); ok(/email isn't set up yet/.test(text), "the form warns that no welcome email can go yet")
+    await dlg(sole).locator("#full_name").fill("Portal Colleague"); await dlg(sole).locator("#email").fill(colleague)
+    await dlg(sole).getByRole("button", { name: "Save" }).click(); await dlg(sole).getByRole("alert").waitFor(); ok(/Role profile is needed/.test(await dlg(sole).getByRole("alert").innerText()), "a role profile must be ticked")
+    await dlg(sole).getByLabel("Tractor Supervisor").check(); await dlg(sole).getByLabel("Quality Care Accounts").check(); await dlg(sole).getByLabel("Quality Care Accounts").uncheck(); await dlg(sole).getByLabel("Training Coordinator").check(); await saved(sole)
+    await go(sole, "/team"); { const row = sole.locator("tr", { hasText: colleague }); const line = await row.innerText(); ok(line.includes("Portal Colleague") && line.includes("Tractor Supervisor") && line.includes("Training Coordinator") && !line.includes("Accounts") && line.includes("Never signed in"), "new colleague appears with the ticked profiles") }
+    // Standard prices
+    const setPrice = async (item, amount) => { await go(sole, "/services"); await sole.locator("tr", { hasText: item }).getByRole("button", { name: "Edit price" }).click(); await dlg(sole).locator("#standard_rate").fill(String(amount)); await saved(sole); await go(sole, "/services") }
+    await go(coord, "/services"); ok(await coord.getByRole("button", { name: "Edit price" }).count() === 0, "a coordinator doesn't see the price button")
+    await setPrice("Monthly Training", 4000); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("4,000"), "standard price shows"); await shot(sole, "81_prices", false)
+    await sole.locator("tr", { hasText: "Monthly Training" }).getByRole("button", { name: "Edit price" }).click(); ok(await dlg(sole).locator("#standard_rate").inputValue() === "4000", "price form reopens with what was saved"); await shot(sole, "82_price_form", false); await sole.keyboard.press("Escape")
+    await setPrice("Tractor Hire", 1500)
+    await go(sole, "/batches"); await sole.getByRole("button", { name: "New class" }).click(); await fillDialog(sole, { "Course": { pick: "Monthly Training" } }); ok(await dlg(sole).locator("#standard_fee").inputValue() === "4000", "a new class starts from the standard price"); await sole.keyboard.press("Escape")
+    await go(sole, "/tractor"); await sole.getByRole("button", { name: "Record job" }).click(); await fillDialog(sole, { "Service": { pick: "Tractor Hire" } }); ok(await dlg(sole).locator("#rate").inputValue() === "1500", "a tractor job starts from the standard price"); await sole.keyboard.press("Escape")
+    await setPrice("Monthly Training", 0); await setPrice("Tractor Hire", 0); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("Set per class or job"), "zero puts it back to set per class or job")
+    // Add buttons open out on hover, and editing is a pencil
+    await go(sole, "/customers"); { const add = sole.getByRole("button", { name: "New customer" }); await sole.mouse.move(0, 0); await sole.waitForTimeout(300); const shut = await add.boundingBox(); ok(shut.width <= 44, "add button starts as just the icon"); await add.hover(); await sole.waitForTimeout(350); const open = await add.boundingBox(); ok(open.width > 100 && (await add.innerText()).includes("New customer"), "hovering opens it out to show the label"); await shot(sole, "83_add_hover", false) }
+    await sole.mouse.move(0, 0); await sole.waitForTimeout(300); await sole.keyboard.press("Tab"); { let wide = false; for (let i = 0; i < 40 && !wide; i++) { const on = await sole.evaluate(() => document.activeElement?.getAttribute("aria-label")); if (on === "New customer") { await sole.waitForTimeout(350); wide = (await sole.getByRole("button", { name: "New customer" }).boundingBox()).width > 100 } else await sole.keyboard.press("Tab") } ok(wide, "reaching it by keyboard opens it out too") }
+    await go(sole, "/suppliers"); { const pen = sole.getByRole("button", { name: "Edit Eric" }); ok((await pen.innerText()).trim() === "" && (await pen.boundingBox()).width <= 36, "editing is a pencil with no text"); await shot(sole, "84_pencils", false) }
   }
 
   // Reports and roles
@@ -229,6 +282,11 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     await acct.locator("nav[aria-label=Pages]").getByRole("link", { name: "Page 3" }).click(); await acct.waitForURL(/page=3/); await acct.waitForFunction(() => document.querySelectorAll("main table tbody tr").length === 25); ok(!/more=/.test(acct.url()), "page numbers work and reset Load more"); text = await acct.locator("nav[aria-label=Pages]").innerText(); ok(text.includes("51–75"), "page 3 shows the last rows"); ok(await acct.getByRole("button", { name: "Load more" }).count() === 0, "no Load more on the last page")
     await acct.locator("nav[aria-label=Pages]").getByRole("link", { name: "Previous page" }).click(); await acct.waitForURL(/page=2/); ok(true, "previous page works"); await go(acct, "/equipment?more=2&page=1"); await acct.getByPlaceholder("Search by item or location").fill("zzzz"); await acct.waitForURL(/search=zzzz/); ok(!/more=|page=/.test(acct.url()), "searching goes back to the start")
     await go(acct, "/trainers"); ok(await rows(acct) >= 25 && await acct.locator("nav[aria-label=Pages]").count() === 1, "trainer list has paging"); await go(acct, "/reports/equipment-register"); ok(await rows(acct) === 25 && await acct.locator("nav[aria-label=Pages]").count() === 1, "reports have paging")
+    const kit = "Portal Trainer " + RUN
+    await go(acct, "/equipment"); await acct.getByRole("button", { name: "New equipment" }).click(); await shot(acct, "78_new_equipment", false)
+    await dlg(acct).locator("#asset_name").fill(kit); await choose(acct, "asset_category", "Training Equipment"); await dlg(acct).locator("#purchase_date").fill("2026-02-01"); await dlg(acct).locator("#value").fill("2"); await dlg(acct).locator("#bought_from").fill("Test Shop")
+    ok((await dlg(acct).locator("#location").innerText()).includes("Halcyon Medical"), "the only location is already chosen"); await saved(acct)
+    await go(acct, "/equipment?search=" + encodeURIComponent(kit)); text = await acct.locator("main").innerText(); ok(text.includes(kit) && text.includes("Training Equipment"), "new equipment appears in the list")
     const ico = await acct.request.get(BASE + "/favicon.ico"); ok(ico.ok() && /icon/.test(ico.headers()["content-type"]), "favicon is served"); ok(await acct.locator('link[rel="icon"]').count() >= 1, "pages link the icon")
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 } }); const l = await ctx.newPage(); await l.goto(BASE + "/login"); await l.waitForLoadState("networkidle"); const z = await l.evaluate(() => { const i = document.querySelector("img[src*=ambulance]"); const f = document.querySelector("form"); return { img: getComputedStyle(i).zIndex, top: document.elementFromPoint(f.getBoundingClientRect().left + 20, f.getBoundingClientRect().top + 20)?.closest("form,section") !== null, blur: getComputedStyle(i).filter } }); await shot(l, "93_login", false); ok(z.img === "-20" && z.top, "login photo sits behind everything: z-index " + z.img); await ctx.close()
   }
@@ -255,6 +313,13 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     await rec.waitForURL(/\/desk\/sales-invoice\//, { timeout: 60000 }); await rec.close(); ok(true, "Open in Desk goes to that record")
   }
 
+  // Signing in to the portal opens Desk too
+  {
+    const c2 = await browser.newContext(); const q = await c2.newPage(); q.setDefaultTimeout(40000); await q.goto(BASE + "/certificates"); await q.fill("#email", "acct@test.local"); await q.fill("#password", PW); await q.click("button[type=submit]"); await q.waitForURL(BASE + "/certificates"); ok(true, "signing in passes through Desk and comes back to the page asked for")
+    const d2 = await c2.newPage(); await d2.goto(FRAPPE + "/desk"); await d2.waitForFunction(() => window.frappe && frappe.session && frappe.session.user === "acct@test.local", null, { timeout: 60000 }).then(() => ok(true, "Desk opens signed in, without clicking anything in the portal")).catch(() => ok(false, "Desk opens signed in: " + d2.url())); await d2.close()
+    await q.goto(BASE + "/dashboard"); await q.waitForLoadState("networkidle"); await q.getByRole("banner").getByRole("button").last().click(); await q.getByRole("menuitem", { name: "Sign out" }).click(); await q.waitForURL(/\/login/); const d3 = await c2.newPage(); await d3.goto(FRAPPE + "/desk"); await d3.waitForURL(/\/login/, { timeout: 30000 }).then(() => ok(true, "and signing out closes it")).catch(() => ok(false, "and signing out closes it")); await c2.close()
+  }
+
   // Signing out of the portal closes Full System too
   {
     const o = await session(browser, "acct@test.local"); await o.waitForLoadState("networkidle"); const ctx = o.context()
@@ -277,7 +342,7 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
   // Phone width
   {
     const m = await session(browser, "sole@test.local", { width: 390, height: 844 })
-    for (const path of ["/dashboard?year=2024", "/invoices", "/trainers", "/batches"]) { await go(m, path); const w = await m.evaluate(() => [document.documentElement.scrollWidth, innerWidth]); ok(w[0] <= w[1] + 1, `no sideways page scroll on ${path} (${w})`) }
+    for (const path of ["/dashboard?year=2024", "/invoices", "/trainers", "/batches", "/suppliers", "/equipment", "/team"]) { await go(m, path); const w = await m.evaluate(() => [document.documentElement.scrollWidth, innerWidth]); ok(w[0] <= w[1] + 1, `no sideways page scroll on ${path} (${w})`) }
     await go(m, "/dashboard?year=2024"); await shot(m, "60_phone")
   }
   ok(problems.length === 0, "no browser errors: " + problems.slice(0, 5).join(" | "))

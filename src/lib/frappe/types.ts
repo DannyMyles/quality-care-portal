@@ -10,6 +10,10 @@ export interface Can {
   edit_tractor: boolean
   customers: boolean
   edit_customers: boolean
+  edit_items: boolean
+  add_suppliers: boolean
+  edit_suppliers: boolean
+  add_equipment: boolean
   invoices: boolean
   submit_invoices: boolean
   payments: boolean
@@ -71,6 +75,10 @@ export interface Overview {
   to_date: string
   ledger: { first: string | null; last: string | null }
   years: string[]
+  years_with_figures: string[]
+  has_figures: boolean
+  previous: { from_date: string; to_date: string; income: number; expenses: number; profit: number } | null
+  notes: string[]
   totals: { income: number; expenses: number; profit: number; margin: number | null }
   business_lines: BusinessLine[]
   periods: Period[]
@@ -92,6 +100,8 @@ export interface QueueItem {
 
 export interface WorkQueue {
   items: QueueItem[]
+  years: string[]
+  in_period?: { classes?: number; trainees?: number; certificates?: number; tractor_jobs?: number; tractor_value?: number }
   activity: {
     trainees?: number
     batches?: Record<string, number>
@@ -225,6 +235,9 @@ export interface Bill {
 }
 
 export interface ReportResult {
+  from_date: string
+  to_date: string
+  years: string[]
   title: string
   columns: { fieldname: string; label: string; fieldtype?: string; options?: string }[]
   rows: Record<string, string | number | null>[]
