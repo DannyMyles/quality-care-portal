@@ -57,7 +57,7 @@ export default async function BillsPage({ searchParams }: { searchParams: Promis
     },
     { header: "Print", cell: (row) => <PrintLink kind="bill" name={row.name} label="Print" /> },
   ]
-  const add = options ? <FormDialog title="New supplier bill" description="This saves as a draft. Check the amount, then submit it." triggerLabel="New bill" success="Draft bill saved" fields={fields} action={createBill} /> : null
+  const add = options ? <FormDialog title="New supplier bill" description="This saves as a draft. Check the amount, then submit it." triggerLabel="New bill" trigger="add" success="Draft bill saved" fields={fields} action={createBill} /> : null
   return (
     <div>
       <PageHeader title="Supplier Bills" description="Enter every bill against the business line it belongs to." actions={add} />

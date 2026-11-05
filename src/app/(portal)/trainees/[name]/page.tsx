@@ -48,7 +48,7 @@ export default async function TraineePage({ params }: { params: Promise<{ name: 
               <FormDialog
                 title="Edit trainee"
                 triggerLabel="Edit"
-                showPlus={false}
+                trigger="edit"
                 success="Trainee updated"
                 fields={traineeFields.filter((field) => field.name !== "customer").map((field) => ({ ...field, initial: trainee[field.name as keyof Trainee] }))}
                 action={update}

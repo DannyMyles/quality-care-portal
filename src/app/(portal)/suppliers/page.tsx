@@ -56,13 +56,13 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
     { header: "Desk", wide: true, cell: (row) => <DeskLink doctype="Supplier" name={row.name} label="Open" /> },
     ...(me.can.edit_suppliers
       ? [{
-          header: "Edit",
+          header: "",
           // Keyed on the values so that the form reopens showing what was just saved.
-          cell: (row: Supplier) => <FormDialog key={JSON.stringify(row)} title={`Edit ${row.supplier_name}`} triggerLabel="Edit" showPlus={false} variant="outline" size="sm" success="Supplier saved" fields={supplierFields(data.options, row)} action={updateSupplier.bind(null, row.name)} />,
+          cell: (row: Supplier) => <FormDialog key={JSON.stringify(row)} title={`Edit ${row.supplier_name}`} triggerLabel="Edit" trigger="edit" success="Supplier saved" fields={supplierFields(data.options, row)} action={updateSupplier.bind(null, row.name)} />,
         }]
       : []),
   ]
-  const add = me.can.add_suppliers ? <FormDialog title="New supplier" triggerLabel="New supplier" success="Supplier saved" fields={supplierFields(data.options)} action={createSupplier} /> : null
+  const add = me.can.add_suppliers ? <FormDialog title="New supplier" triggerLabel="New supplier" trigger="add" success="Supplier saved" fields={supplierFields(data.options)} action={createSupplier} /> : null
   return (
     <div>
       <PageHeader title="Suppliers" description="Trainers and everyone else Quality Care pays." actions={add} />

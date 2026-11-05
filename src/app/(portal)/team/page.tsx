@@ -30,6 +30,7 @@ export default async function TeamPage() {
       title="New team member"
       description={emailReady ? "They'll get a welcome email to choose their password." : "They can't sign in until they get a welcome email, and email isn't set up yet."}
       triggerLabel="New team member"
+      trigger="add"
       success={emailReady ? "Added, and welcome email sent" : "Added. Send their welcome email once email is set up"}
       fields={fields}
       action={createTeamMember}

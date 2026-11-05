@@ -36,7 +36,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
   const data = await api<Page<Batch>>("batches", { params: { status: params.status, search: params.search, start, limit } })
-  const add = me.can.edit_batches ? <FormDialog title="New class" triggerLabel="New class" success="Class created" fields={fields} action={saveBatch} goTo="/batches/{result}" /> : null
+  const add = me.can.edit_batches ? <FormDialog title="New class" triggerLabel="New class" trigger="add" success="Class created" fields={fields} action={saveBatch} goTo="/batches/{result}" /> : null
   return (
     <div>
       <PageHeader title="Classes" description="Plan a class, add trainees, then bill them and request certificates." actions={add} />

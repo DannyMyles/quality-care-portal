@@ -65,7 +65,7 @@ export default async function TractorPage({ searchParams }: { searchParams: Prom
     { header: "Print", cell: (row) => <PrintLink kind="tractor" name={row.name} label="Print" /> },
     { header: "Desk", wide: true, cell: (row) => <DeskLink doctype="Tractor Hire Log" name={row.name} label="Open" /> },
   ]
-  const add = me.can.edit_tractor ? <FormDialog title="Record a tractor job" triggerLabel="Record job" success="Job recorded" fields={fields} action={saveTractorLog} /> : null
+  const add = me.can.edit_tractor ? <FormDialog title="Record a tractor job" triggerLabel="Record job" trigger="add" success="Job recorded" fields={fields} action={saveTractorLog} /> : null
   return (
     <div className="flex flex-col gap-2">
       <PageHeader title="Tractor Hire" description="Record each job, then turn it into an invoice." actions={add} />

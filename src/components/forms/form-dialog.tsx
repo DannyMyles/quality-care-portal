@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition, type ComponentProps } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Plus } from "@/components/icons"
+import { Pencil, Plus } from "@/components/icons"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -111,6 +111,7 @@ export function FormDialog({
   action,
   goTo,
   showPlus = true,
+  trigger = "label",
   variant,
   size,
 }: {
@@ -123,6 +124,8 @@ export function FormDialog({
   action: (values: FormValues) => Promise<ActionResult>
   goTo?: string
   showPlus?: boolean
+  /** "label" is an ordinary button. "add" shows only a plus until hovered or focused, and "edit" is a pencil. */
+  trigger?: "label" | "add" | "edit"
   variant?: ComponentProps<typeof Button>["variant"]
   size?: ComponentProps<typeof Button>["size"]
 }) {
@@ -160,10 +163,24 @@ export function FormDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button variant={variant} size={size} />}>
-        {showPlus && <Plus className="size-4" />}
-        {triggerLabel}
-      </DialogTrigger>
+      {trigger === "edit" ? (
+        <DialogTrigger render={<Button variant="outline" size="icon-sm" aria-label={title} />}>
+          <Pencil className="size-4 text-[#2E3094]" />
+        </DialogTrigger>
+      ) : trigger === "add" ? (
+        <DialogTrigger render={<Button variant={variant} size={size} aria-label={triggerLabel} title={triggerLabel} className="gap-0 px-3" />}>
+          <Plus className="size-4" />
+          {/* Touch screens can't hover, so they keep the label. */}
+          <span className="max-w-0 overflow-hidden opacity-0 transition-all duration-200 group-hover/button:ml-2 group-hover/button:max-w-52 group-hover/button:opacity-100 group-focus-visible/button:ml-2 group-focus-visible/button:max-w-52 group-focus-visible/button:opacity-100 motion-reduce:transition-none [@media(hover:none)]:ml-2 [@media(hover:none)]:max-w-52 [@media(hover:none)]:opacity-100">
+            {triggerLabel}
+          </span>
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger render={<Button variant={variant} size={size} />}>
+          {showPlus && <Plus className="size-4" />}
+          {triggerLabel}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-xl">
         <form onSubmit={submit} className="flex flex-col gap-4">
           <DialogHeader>

@@ -37,7 +37,7 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Pr
     { name: "bought_from", label: "Bought from" },
     { name: "serial_number", label: "Serial number" },
   ]
-  const add = me.can.add_equipment ? <FormDialog title="New equipment" description="This adds the item to the register. Nothing posts to the books." triggerLabel="New equipment" success="Equipment saved" fields={fields} action={createEquipment} /> : null
+  const add = me.can.add_equipment ? <FormDialog title="New equipment" description="This adds the item to the register. Nothing posts to the books." triggerLabel="New equipment" trigger="add" success="Equipment saved" fields={fields} action={createEquipment} /> : null
   const total = data.categories.reduce((sum, row) => sum + row.value, 0)
   const count = data.categories.reduce((sum, row) => sum + row.count, 0)
   return (

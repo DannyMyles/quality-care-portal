@@ -42,9 +42,9 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
           { header: "Standard price", align: "right", cell: (row) => (row.standard_rate ? formatKes(row.standard_rate) : "Set per class or job") },
           ...(me.can.edit_items
             ? [{
-                header: "Edit",
+                header: "",
                 // Keyed on the price so that the form reopens showing what was just saved.
-                cell: (row: Item) => <FormDialog key={`${row.name}:${row.standard_rate}`} title={`Standard price: ${row.item_name}`} triggerLabel="Edit price" showPlus={false} variant="outline" size="sm" success="Price saved" fields={priceFields(row)} action={setItemPrice.bind(null, row.name)} />,
+                cell: (row: Item) => <FormDialog key={`${row.name}:${row.standard_rate}`} title={`Edit price: ${row.item_name}`} triggerLabel="Edit price" trigger="edit" success="Price saved" fields={priceFields(row)} action={setItemPrice.bind(null, row.name)} />,
               }]
             : []),
         ]}

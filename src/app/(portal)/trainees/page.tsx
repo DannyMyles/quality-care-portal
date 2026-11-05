@@ -24,7 +24,7 @@ export default async function TraineesPage({ searchParams }: { searchParams: Pro
   const me = await getMe()
   const data = await api<Page<Trainee>>("trainees", { params: { search: params.search, start, limit } })
   const importLink = me.can.import_trainees ? <Link prefetch={false} href="/import" className="text-sm font-medium text-[#2E3094] hover:underline">Import from Excel</Link> : null
-  const add = me.can.edit_trainees ? <FormDialog title="New trainee" triggerLabel="New trainee" success="Trainee saved" fields={traineeFields} action={saveTrainee} goTo="/trainees/{result}" /> : null
+  const add = me.can.edit_trainees ? <FormDialog title="New trainee" triggerLabel="New trainee" trigger="add" success="Trainee saved" fields={traineeFields} action={saveTrainee} goTo="/trainees/{result}" /> : null
   return (
     <div>
       <PageHeader title="Trainees" description="Everyone who has trained or is booked to train with Quality Care." actions={<>{importLink}{add}</>} />
