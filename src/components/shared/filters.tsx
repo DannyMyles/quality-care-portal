@@ -157,6 +157,32 @@ export function AsAtFilter({ param = "to" }: { param?: string }) {
   )
 }
 
+// Paging and the chosen tab aren't filters, so they don't make "Clear filters" appear.
+const NOT_FILTERS = new Set(["page", "more", "status", "category", "trainer"])
+
+/** Shows once any filter is set, and puts the list back to how it first opened. */
+function ClearFilters() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const active = [...searchParams.keys()].some((key) => !NOT_FILTERS.has(key))
+  if (!active) return null
+  const clear = () => {
+    const kept = new URLSearchParams([...searchParams.entries()].filter(([key]) => NOT_FILTERS.has(key) && key !== "page" && key !== "more"))
+    router.push(kept.size ? `${pathname}?${kept}` : pathname)
+  }
+  return (
+    <button type="button" onClick={clear} className="text-sm font-medium text-[#2E3094] hover:underline">
+      Clear filters
+    </button>
+  )
+}
+
 export function FilterBar({ children }: { children: React.ReactNode }) {
-  return <div className="mb-4 flex flex-wrap items-center gap-3">{children}</div>
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-3">
+      {children}
+      <ClearFilters />
+    </div>
+  )
 }

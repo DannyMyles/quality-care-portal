@@ -4,6 +4,7 @@ import { Teacher, Wallet, ReceiptText } from "@/components/icons"
 import { FilterBar, PeriodFilter } from "@/components/shared/filters"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { PageHeader } from "@/components/shared/page-header"
+import { PrintLink } from "@/components/shared/print-link"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusTabs } from "@/components/shared/status-tabs"
 import { api } from "@/lib/frappe/client"
@@ -38,7 +39,7 @@ export default async function TrainersPage({ searchParams }: { searchParams: Pro
   const sum = (key: "due" | "wht" | "paid") => data.summary.reduce((total, row) => total + row[key], 0)
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Trainers & WHT" description={`Trainer fees and 5% withholding tax. ${held}These records don't post to the ledger.`} />
+      <PageHeader title="Trainers & WHT" description={`Trainer fees and 5% withholding tax. ${held}These records don't post to the ledger.`} actions={<>{params.trainer && <PrintLink statement="supplier" name={params.trainer} from={chosen?.from} to={chosen?.to} label={`Print ${params.trainer}'s statement`} />}<PrintLink report="trainer-wht" from={chosen?.from} to={chosen?.to} label="Print WHT report" /></>} />
       <FilterBar>
         <PeriodFilter years={data.years} defaultLabel="All records" />
       </FilterBar>

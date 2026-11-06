@@ -17,7 +17,7 @@ export default async function AccountPage() {
             <div><dt className="text-xs text-[#6A6C8C]">Email</dt><dd className="mt-0.5 font-medium">{me.email}</dd></div>
             <div><dt className="text-xs text-[#6A6C8C]">Roles</dt><dd className="mt-0.5 font-medium">{me.roles.join(", ") || "None"}</dd></div>
           </dl>
-          <p className="mt-4 text-xs text-[#6A6C8C]">The Director can change your name or roles in Desk.</p>
+          <p className="mt-4 text-xs text-[#6A6C8C]">A Director can change your access on the Team page.</p>
         </ChartCard>
         <ChartCard title="Signed in elsewhere?">
           <p className="mb-4 text-sm text-[#5E6182]">If you used a shared computer or lost a device, this signs you out of the portal and Desk everywhere, including here.</p>

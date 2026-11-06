@@ -1,6 +1,6 @@
 import { GraduationCap } from "@/components/icons"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
-import { FilterBar, SearchFilter } from "@/components/shared/filters"
+import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { setItemPrice } from "@/lib/actions"
@@ -22,16 +22,19 @@ const priceFields = (row: Item): FormField[] => [
   { name: "standard_rate", label: "Standard price (KES)", type: "number", required: true, full: true, initial: row.standard_rate ?? 0, hint: "Classes and tractor jobs start from this, and it can still be changed on each one. Enter 0 for no standard price." },
 ]
 
+const choices = (values: string[]) => values.map((value) => ({ value, label: value }))
+
 export default async function ServicesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
-  const data = await api<Page<Item>>("items", { params: { search: params.search, start, limit } })
+  const data = await api<Page<Item> & { groups: string[] }>("items", { params: { search: params.search, item_group: params.group, start, limit } })
   return (
     <div>
       <PageHeader title="Courses & Services" description="What Quality Care sells, and the trainer fee it pays." />
       <FilterBar>
         <SearchFilter placeholder="Search by name or group" />
+        <SelectFilter param="group" placeholder="All groups" options={choices(data.groups)} />
       </FilterBar>
       <RecordTable
         columns={[

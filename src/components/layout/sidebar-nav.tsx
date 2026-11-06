@@ -117,15 +117,15 @@ export function SidebarNav({
         </nav>
 
         {desk && (
-          <div className={cn("shrink-0 border-t border-[#EEF0F8] py-3", collapsed ? "flex justify-center px-3" : "px-4")}>
+          <div className={cn("relative shrink-0 pt-1 pb-3 before:pointer-events-none before:absolute before:inset-x-0 before:-top-6 before:h-6 before:bg-gradient-to-t before:from-white before:to-transparent", collapsed ? "flex justify-center px-3" : "px-4")}>
             <a
               href="/desk"
               target="_blank"
               rel="noopener"
               title="Open the full system"
               className={cn(
-                "flex items-center text-[13px] font-medium text-[#2E3094] transition-colors hover:bg-[#F3F4FB]",
-                collapsed ? "size-11 justify-center rounded-xl" : "gap-3 rounded-xl px-3.5 py-2.5"
+                "flex items-center rounded-lg bg-[#F1F2FA] text-[13px] font-medium text-[#2E3094] transition-colors hover:bg-[#E9EBF8]",
+                collapsed ? "size-11 justify-center" : "gap-3 px-3.5 py-2.5"
               )}
             >
               <ExternalLink className="size-5 shrink-0" />

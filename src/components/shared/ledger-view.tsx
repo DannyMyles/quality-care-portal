@@ -4,6 +4,7 @@ import { ChartCard } from "@/components/charts/chart-card"
 import { DateFilter, FilterBar, SelectFilter } from "@/components/shared/filters"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { PageHeader } from "@/components/shared/page-header"
+import { PrintLink } from "@/components/shared/print-link"
 import { RecordTable } from "@/components/shared/record-table"
 import { api } from "@/lib/frappe/client"
 import { compactKes, formatDate, formatKes, pageOf } from "@/lib/format"
@@ -49,7 +50,7 @@ export async function LedgerView({
   const chosen = data.accounts.find((row) => row.account === params.account)
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={title} description={description} />
+      <PageHeader title={title} description={description} actions={<PrintLink report="profit-and-loss" from={params.from} to={params.to} label="Print profit and loss" />} />
       <FilterBar>
         <DateFilter />
         <SelectFilter param="account" placeholder="All accounts" className="w-full sm:w-64" options={data.accounts.map((row) => ({ value: row.account, label: row.name }))} />

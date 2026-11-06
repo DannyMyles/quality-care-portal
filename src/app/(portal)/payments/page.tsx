@@ -1,6 +1,6 @@
 import { InfoIcon, Phone } from "@/components/icons"
 import { FormDialog } from "@/components/forms/form-dialog"
-import { FilterBar, SearchFilter } from "@/components/shared/filters"
+import { FilterBar, PeriodFilter, SearchFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable, type Column } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
@@ -9,12 +9,14 @@ import { allocateMpesa } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatKes, pageOf } from "@/lib/format"
 import type { MpesaPayment, Page } from "@/lib/frappe/types"
+import { readPeriod } from "@/lib/period"
 
 export default async function PaymentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
-  const data = await api<Page<MpesaPayment> & { enabled: boolean }>("mpesa_payments", { params: { status: params.status, search: params.search, start, limit } })
+  const chosen = readPeriod(params)
+  const data = await api<Page<MpesaPayment> & { enabled: boolean; years: string[] }>("mpesa_payments", { params: { status: params.status, search: params.search, from_date: chosen?.from, to_date: chosen?.to, start, limit } })
   const columns: Column<MpesaPayment>[] = [
     { header: "M-Pesa code", cell: (row) => <div><p className="font-medium">{row.transaction_id}</p><p className="mt-0.5 text-xs text-[#6A6C8C]">{row.payer_name}</p></div> },
     { header: "Phone", cell: (row) => row.phone ?? "—" },
@@ -55,6 +57,7 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
       <StatusTabs path="/payments" current={params.status} keep={params} options={["", "Unmatched", "Applied", "Reversed"].map((value) => ({ value, label: value || "All" }))} />
       <FilterBar>
         <SearchFilter placeholder="Search by code, name or account" />
+        <PeriodFilter years={data.years} defaultLabel="Any date" />
       </FilterBar>
       <RecordTable columns={columns} rows={data.rows} rowKey={(row) => row.name} empty="No M-Pesa payments here" emptyIcon={Phone} total={data.total} page={page} path="/payments" params={params} />
     </div>

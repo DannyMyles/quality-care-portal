@@ -3,6 +3,7 @@ import { ChartCard } from "@/components/charts/chart-card"
 import { AsAtFilter, FilterBar } from "@/components/shared/filters"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { PageHeader } from "@/components/shared/page-header"
+import { PrintLink } from "@/components/shared/print-link"
 import { api } from "@/lib/frappe/client"
 import { formatDate, formatKes } from "@/lib/format"
 
@@ -30,7 +31,7 @@ export default async function BooksPage({ searchParams }: { searchParams: Promis
   const agree = Math.abs(balances.debit - balances.credit) < 0.01
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Balances" description="Every account with a balance. This page is read-only; make changes in Desk." />
+      <PageHeader title="Balances" description="Every account with a balance. This page is read-only; make changes in Desk." actions={<PrintLink report="trial-balance" to={params.to} label="Print trial balance" />} />
       <p className="flex items-start gap-2.5 rounded-xl bg-[#00A3E0]/10 px-4 py-3 text-sm">
         <InfoIcon className="mt-0.5 size-4 shrink-0 text-[#0078A8]" />
         Bank and loan balances are provisional until statements arrive, and the equipment register isn&apos;t on the balance sheet yet. Brackets mean a balance runs against its section, such as loan repayments waiting to be split.

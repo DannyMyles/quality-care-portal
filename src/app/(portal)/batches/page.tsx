@@ -1,6 +1,6 @@
 import { Calendar } from "@/components/icons"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
-import { FilterBar, SearchFilter } from "@/components/shared/filters"
+import { FilterBar, PeriodFilter, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
@@ -9,6 +9,7 @@ import { saveBatch } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes, pageOf } from "@/lib/format"
 import type { Batch, Page } from "@/lib/frappe/types"
+import { readPeriod } from "@/lib/period"
 
 const STATUSES = ["Planned", "In Progress", "Completed", "Cancelled"]
 const fields: FormField[] = [
@@ -31,11 +32,14 @@ const columns: Column<Batch>[] = [
   { header: "Fees", align: "right", cell: (row) => formatKes(row.total_fees) },
 ]
 
+const choices = (values: string[]) => values.map((value) => ({ value, label: value }))
+
 export default async function BatchesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
-  const data = await api<Page<Batch>>("batches", { params: { status: params.status, search: params.search, start, limit } })
+  const chosen = readPeriod(params)
+  const data = await api<Page<Batch> & { courses: string[]; trainers: string[]; years: string[] }>("batches", { params: { status: params.status, search: params.search, course: params.course, trainer: params.trainer, from_date: chosen?.from, to_date: chosen?.to, start, limit } })
   const add = me.can.edit_batches ? <FormDialog title="New class" triggerLabel="New class" trigger="add" success="Class created" fields={fields} action={saveBatch} goTo="/batches/{result}" /> : null
   return (
     <div>
@@ -43,6 +47,9 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
       <StatusTabs path="/batches" current={params.status} keep={params} options={[{ value: "", label: "All" }, ...STATUSES.map((value) => ({ value, label: value }))]} />
       <FilterBar>
         <SearchFilter placeholder="Search by course, venue or trainer" />
+        <SelectFilter param="course" placeholder="All courses" options={choices(data.courses)} />
+        <SelectFilter param="trainer" placeholder="All trainers" options={choices(data.trainers)} />
+        <PeriodFilter years={data.years} defaultLabel="Starting any time" />
       </FilterBar>
       <RecordTable columns={columns} rows={data.rows} rowKey={(row) => row.name} empty="No classes here yet" emptyIcon={Calendar} emptyAction={params.status || params.search ? undefined : add} total={data.total} page={page} path="/batches" params={params} />
     </div>

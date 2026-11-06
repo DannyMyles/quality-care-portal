@@ -1,9 +1,12 @@
 import { notFound } from "next/navigation"
 import { DownloadCsv } from "@/components/forms/download-csv"
+import { DeskLink } from "@/components/shared/desk-link"
+import { ActionsMenu } from "@/components/shared/actions-menu"
+import { PrintLink } from "@/components/shared/print-link"
 import { FilterBar, PeriodFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
-import { api } from "@/lib/frappe/client"
+import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes, pageOf } from "@/lib/format"
 import type { ReportResult } from "@/lib/frappe/types"
 import { describeRange, readPeriod } from "@/lib/period"
@@ -23,12 +26,13 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   if (!report) notFound()
   const search = await searchParams
   const chosen = readPeriod(search)
+  const me = await getMe()
   const { page, start, limit } = pageOf(search)
   const data = await api<ReportResult>("report", { params: { slug, from_date: chosen?.from, to_date: chosen?.to } })
   const csv = [data.columns.map((column) => column.label), ...data.rows.map((row) => data.columns.map((column) => String(row[column.fieldname] ?? "")))]
   return (
     <div>
-      <PageHeader title={report.title} description={report.description} actions={<DownloadCsv filename={`${slug}-${data.from_date}-to-${data.to_date}.csv`} rows={csv} />} />
+      <PageHeader title={report.title} description={report.description} actions={<ActionsMenu><PrintLink report={slug} from={data.from_date} to={data.to_date} /><DownloadCsv filename={`${slug}-${data.from_date}-to-${data.to_date}.csv`} rows={csv} />{me.desk && <DeskLink path={`/desk/query-report/${encodeURIComponent(data.title)}`} />}</ActionsMenu>} />
       {!report.noDates && (
         <FilterBar>
           <PeriodFilter years={data.years} defaultLabel="All dates" />

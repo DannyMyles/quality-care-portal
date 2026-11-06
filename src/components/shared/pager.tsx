@@ -4,7 +4,8 @@ import { LoadMoreButton } from "@/components/shared/load-more-button"
 import { canLoadMore, PAGE_SIZE, pageOf } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-const SHAPE = "flex h-9 min-w-9 items-center justify-center rounded-lg border border-border bg-white px-2 text-sm tabular-nums transition-colors hover:bg-[#F3F4FB]"
+// The same soft track as the Chart and Table switch: the current page sits raised on it.
+const SHAPE = "flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[13px] text-[#6A6C8C] tabular-nums transition-colors hover:text-[#12133D]"
 
 /** Page numbers to show: the first, the last, and those around the current ones. Gaps are null. */
 function pageList(first: number, last: number, pages: number) {
@@ -35,7 +36,7 @@ export function Pager({ total, page, path, params }: { total: number; page: numb
       </span>
       {lastRow < total && canLoadMore(more) && <LoadMoreButton href={href({ page, more: more + 1 })} />}
       {pages > 1 ? (
-        <ul className="flex flex-wrap items-center justify-center gap-1">
+        <ul className="flex flex-wrap items-center justify-center gap-0.5 rounded-lg bg-[#F1F2FA] p-0.5">
           {page > 1 && (
             <li>
               <Link prefetch={false} aria-label="Previous page" href={href({ page: page - 1 })} className={SHAPE}>
@@ -45,7 +46,7 @@ export function Pager({ total, page, path, params }: { total: number; page: numb
           )}
           {pageList(page, lastShown, pages).map((n, index) =>
             n === null ? (
-              <li key={`gap${index}`} aria-hidden className="px-1">
+              <li key={`gap${index}`} aria-hidden className="px-1 text-[#6A6C8C]">
                 …
               </li>
             ) : (
@@ -55,7 +56,7 @@ export function Pager({ total, page, path, params }: { total: number; page: numb
                   aria-label={`Page ${n}`}
                   aria-current={n >= page && n <= lastShown ? "page" : undefined}
                   href={href({ page: n })}
-                  className={cn(SHAPE, n >= page && n <= lastShown && "border-[#2E3094] bg-[#2E3094] text-white hover:bg-[#23257A]")}
+                  className={cn(SHAPE, n >= page && n <= lastShown && "bg-white font-medium text-[#12133D] shadow-sm")}
                 >
                   {n}
                 </Link>

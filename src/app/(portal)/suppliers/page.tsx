@@ -1,9 +1,8 @@
 import { Building2 } from "@/components/icons"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
-import { DeskLink } from "@/components/shared/desk-link"
-import { FilterBar, SearchFilter } from "@/components/shared/filters"
+import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
-import { RecordTable, type Column } from "@/components/shared/record-table"
+import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
 import { createSupplier, updateSupplier } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatKes, pageOf } from "@/lib/format"
@@ -46,14 +45,13 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
-  const data = await api<Page<Supplier> & { options: { groups: string[]; withholding: string[] } }>("suppliers", { params: { search: params.search, start, limit } })
+  const data = await api<Page<Supplier> & { options: { groups: string[]; groups_in_use: string[]; withholding: string[] } }>("suppliers", { params: { search: params.search, supplier_group: params.group, start, limit } })
   const columns: Column<Supplier>[] = [
-    { header: "Supplier", cell: (row) => <span className="font-medium">{row.supplier_name}</span> },
+    { header: "Supplier", cell: (row) => <RecordLink href={`/suppliers/${encodeURIComponent(row.name)}`}>{row.supplier_name}</RecordLink> },
     { header: "Group", cell: (row) => row.supplier_group ?? "—", wide: true },
     { header: "KRA PIN", cell: (row) => row.tax_id ?? "—" },
     { header: "Withholding tax", cell: (row) => row.tax_withholding_category ?? "None", wide: true },
     ...(me.can.finance ? [{ header: "We owe", align: "right" as const, cell: (row: Supplier) => formatKes(row.balance) }] : []),
-    { header: "Desk", wide: true, cell: (row) => <DeskLink doctype="Supplier" name={row.name} label="Open" /> },
     ...(me.can.edit_suppliers
       ? [{
           header: "",
@@ -68,6 +66,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
       <PageHeader title="Suppliers" description="Trainers and everyone else Quality Care pays." actions={add} />
       <FilterBar>
         <SearchFilter placeholder="Search by name, PIN or group" />
+        <SelectFilter param="group" placeholder="All groups" options={data.options.groups_in_use.map((value) => ({ value, label: value }))} />
       </FilterBar>
       <RecordTable columns={columns} rows={data.rows} rowKey={(row) => row.name} empty="No suppliers found" emptyIcon={Building2} total={data.total} page={page} path="/suppliers" params={params} />
     </div>
