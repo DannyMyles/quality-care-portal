@@ -34,7 +34,7 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
     <div className="flex flex-col gap-6">
       <PageHeader
         title={batch.course_name ?? batch.course}
-        description={`${formatDate(batch.start_date)}${batch.end_date ? ` to ${formatDate(batch.end_date)}` : ""}${batch.venue ? ` · ${batch.venue}` : ""}${batch.trainer ? ` · ${batch.trainer}` : ""}`}
+        description={`${formatDate(batch.start_date)}${batch.end_date ? ` to ${formatDate(batch.end_date)}` : ""}${batch.venue ? ` · ${batch.venue}` : ""}${batch.trainer ? ` · ${batch.trainer}` : ""}${batch.cpd_points ? ` · ${batch.cpd_points} CPD points` : ""}`}
         actions={
           <>
             <StatusBadge status={batch.status} />
