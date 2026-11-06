@@ -143,6 +143,7 @@ export interface Batch {
   course_name?: string
   status: string
   standard_fee?: number
+  cpd_points?: number
   start_date: string
   end_date?: string
   venue?: string

@@ -18,15 +18,18 @@ const fields: FormField[] = [
   { name: "end_date", label: "End date", type: "date" },
   { name: "status", label: "Status", type: "select", required: true, initial: "Planned", options: STATUSES.map((value) => ({ value, label: value })) },
   { name: "standard_fee", label: "Standard fee (KES)", type: "number" },
+  { name: "cpd_points", label: "CPD points", type: "number", hint: "Leave blank to use the course's points." },
   { name: "venue", label: "Venue" },
   { name: "trainer", label: "Lead trainer" },
 ]
 
 const columns: Column<Batch>[] = [
+  { header: "Code", cell: (row) => <span className="font-medium">{row.course}</span> },
   { header: "Class", cell: (row) => <RecordLink href={`/batches/${encodeURIComponent(row.name)}`} sub={row.name}>{row.course_name ?? row.course}</RecordLink> },
   { header: "Starts", cell: (row) => formatDate(row.start_date) },
   { header: "Venue", cell: (row) => row.venue ?? "—", wide: true },
   { header: "Trainer", cell: (row) => row.trainer ?? "—", wide: true },
+  { header: "CPD", align: "right", cell: (row) => row.cpd_points ?? "—" },
   { header: "Status", cell: (row) => <StatusBadge status={row.status} /> },
   { header: "Trainees", align: "right", cell: (row) => row.trainee_count ?? 0 },
   { header: "Fees", align: "right", cell: (row) => formatKes(row.total_fees) },

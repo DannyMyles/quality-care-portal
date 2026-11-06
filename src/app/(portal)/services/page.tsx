@@ -38,6 +38,7 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
       </FilterBar>
       <RecordTable
         columns={[
+          { header: "Code", cell: (row) => (row.name !== row.item_name ? <span className="font-medium">{row.name}</span> : "—") },
           { header: "Name", cell: (row) => <span className="font-medium">{row.item_name}</span> },
           { header: "Group", cell: (row) => row.item_group },
           { header: "Used for", cell: (row) => (row.is_sales_item ? "Sales" : row.is_purchase_item ? "Purchases" : "—") },
