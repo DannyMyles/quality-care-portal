@@ -2,7 +2,7 @@ import Link from "next/link"
 import { GraduationCap } from "@/components/icons"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { traineeFields } from "@/components/forms/fields"
-import { FilterBar, SearchFilter } from "@/components/shared/filters"
+import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
 import { saveTrainee } from "@/lib/actions"
@@ -18,11 +18,13 @@ const columns: Column<Trainee>[] = [
   { header: "Billed to", cell: (row) => row.customer ?? <span className="text-[#6A6C8C]">Not set</span> },
 ]
 
+const choices = (values: string[]) => values.map((value) => ({ value, label: value }))
+
 export default async function TraineesPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
-  const data = await api<Page<Trainee>>("trainees", { params: { search: params.search, start, limit } })
+  const data = await api<Page<Trainee> & { professions: string[]; courses: string[] }>("trainees", { params: { search: params.search, profession: params.profession, course: params.course, start, limit } })
   const importLink = me.can.import_trainees ? <Link prefetch={false} href="/import" className="text-sm font-medium text-[#2E3094] hover:underline">Import from Excel</Link> : null
   const add = me.can.edit_trainees ? <FormDialog title="New trainee" triggerLabel="New trainee" trigger="add" success="Trainee saved" fields={traineeFields} action={saveTrainee} goTo="/trainees/{result}" /> : null
   return (
@@ -30,6 +32,8 @@ export default async function TraineesPage({ searchParams }: { searchParams: Pro
       <PageHeader title="Trainees" description="Everyone who has trained or is booked to train with Quality Care." actions={<>{importLink}{add}</>} />
       <FilterBar>
         <SearchFilter placeholder="Search by name, ID, phone or email" />
+        <SelectFilter param="profession" placeholder="All professions" options={choices(data.professions)} />
+        <SelectFilter param="course" placeholder="Any course taken" options={choices(data.courses)} />
       </FilterBar>
       <RecordTable
         columns={columns}

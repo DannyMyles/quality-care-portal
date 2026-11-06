@@ -1,3 +1,17 @@
+/** What this person may print, from the Print ticks in Desk. */
+export interface PrintRights {
+  invoice: boolean
+  receipt: boolean
+  bill: boolean
+  tractor: boolean
+  class: boolean
+  journal: boolean
+  certificate: boolean
+  supplier: boolean
+  customer: boolean
+  reports: string[]
+}
+
 export interface Can {
   finance: boolean
   trainees: boolean
@@ -34,6 +48,7 @@ export interface Can {
 }
 
 export interface Me {
+  print: PrintRights
   name: string
   email: string
   full_name: string

@@ -1,6 +1,6 @@
 import { InfoIcon } from "@/components/icons"
-import { DeskLink } from "@/components/shared/desk-link"
 import { PageHeader } from "@/components/shared/page-header"
+import { PrintLink } from "@/components/shared/print-link"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { api } from "@/lib/frappe/client"
@@ -28,14 +28,14 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ n
         actions={
           <>
             <StatusBadge status={entry.docstatus === 0 ? "Draft" : "Posted"} />
-            <DeskLink doctype="Journal Entry" name={name} />
+            <PrintLink kind="journal" name={name} />
           </>
         }
       />
       {entry.docstatus === 0 && (
         <p className="flex items-start gap-2.5 rounded-xl bg-[#F5C400]/20 px-4 py-3 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          This draft isn&apos;t in the books or the dashboard. Review it and post it from Desk if it&apos;s right.
+          This draft isn&apos;t in the books or the dashboard. Review it and post it from the full system if it&apos;s right.
         </p>
       )}
       {entry.user_remark && <p className="max-w-3xl text-sm text-[#5E6182]">{entry.user_remark}</p>}

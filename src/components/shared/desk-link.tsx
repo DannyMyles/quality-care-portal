@@ -1,8 +1,7 @@
 import { ExternalLink } from "@/components/icons"
 
-/** Open this record in the full system. A plain link, so nothing prefetches the one-time key. */
-export function DeskLink({ doctype, name, label = "Open in Desk" }: { doctype: string; name: string; label?: string }) {
-  const path = `/desk/${doctype.toLowerCase().replace(/ /g, "-")}/${encodeURIComponent(name)}`
+/** Open a page of the full system. A plain link, so nothing prefetches the one-time key. */
+export function DeskLink({ path, label = "Open in full system" }: { path: string; label?: string }) {
   return (
     <a
       href={`/desk?to=${encodeURIComponent(path)}`}

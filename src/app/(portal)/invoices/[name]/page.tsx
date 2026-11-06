@@ -3,8 +3,8 @@ import { paymentFields } from "@/components/forms/fields"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { ChartCard } from "@/components/charts/chart-card"
+import { ActionsMenu } from "@/components/shared/actions-menu"
 import { PrintLink } from "@/components/shared/print-link"
-import { DeskLink } from "@/components/shared/desk-link"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
@@ -39,19 +39,20 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge status={invoice.status} />
-            <DeskLink doctype="Sales Invoice" name={name} />
-            <PrintLink kind="invoice" name={name} />
-            {isDraft && me.can.submit_invoices && (
-              <ActionButton label="Submit invoice" success="Invoice submitted" confirm="Once submitted, this invoice goes into the books and can only be reversed with a credit note." action={submitInvoice.bind(null, name)} />
-            )}
-            {owing && me.can.payments && (
-              <FormDialog title="Record a payment" description={`${formatKes(invoice.outstanding_amount, true)} is still unpaid.`} triggerLabel="Record payment" submitLabel="Record payment" success="Payment recorded" showPlus={false} fields={paymentFields(invoice.outstanding_amount)} action={recordPayment.bind(null, name)} />
-            )}
-            {data.pay_url && <CopyPayLink url={data.pay_url} />}
-            {owing && data.mpesa_enabled && me.can.mpesa && (
-              <FormDialog title="Send an M-Pesa request" description="The customer gets a prompt on their phone for the unpaid balance." triggerLabel="Request M-Pesa" submitLabel="Send request" success="Request sent to their phone" showPlus={false} variant="outline" fields={[{ name: "phone", label: "Phone", type: "tel", required: true, full: true, placeholder: "0712 345 678" }]} action={requestMpesa.bind(null, name)} />
-            )}
-            {unsigned && me.can.submit_invoices && <ActionButton variant="outline" label="Retry eTIMS" success="Sent to eTIMS again" action={retryEtims.bind(null, name)} />}
+            <ActionsMenu>
+              <PrintLink kind="invoice" name={name} />
+              {isDraft && me.can.submit_invoices && (
+                <ActionButton label="Submit invoice" success="Invoice submitted" confirm="Once submitted, this invoice goes into the books and can only be reversed with a credit note." action={submitInvoice.bind(null, name)} />
+              )}
+              {owing && me.can.payments && (
+                <FormDialog title="Record a payment" description={`${formatKes(invoice.outstanding_amount, true)} is still unpaid.`} triggerLabel="Record payment" submitLabel="Record payment" success="Payment recorded" showPlus={false} fields={paymentFields(invoice.outstanding_amount)} action={recordPayment.bind(null, name)} />
+              )}
+              {data.pay_url && <CopyPayLink url={data.pay_url} />}
+              {owing && data.mpesa_enabled && me.can.mpesa && (
+                <FormDialog title="Send an M-Pesa request" description="The customer gets a prompt on their phone for the unpaid balance." triggerLabel="Request M-Pesa" submitLabel="Send request" success="Request sent to their phone" showPlus={false} variant="outline" fields={[{ name: "phone", label: "Phone", type: "tel", required: true, full: true, placeholder: "0712 345 678" }]} action={requestMpesa.bind(null, name)} />
+              )}
+              {unsigned && me.can.submit_invoices && <ActionButton variant="outline" label="Retry eTIMS" success="Sent to eTIMS again" action={retryEtims.bind(null, name)} />}
+            </ActionsMenu>
           </div>
         }
       />

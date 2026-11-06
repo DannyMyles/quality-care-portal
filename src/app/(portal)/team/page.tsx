@@ -1,11 +1,10 @@
 import { InfoIcon, UsersRound } from "@/components/icons"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
-import { DeskLink } from "@/components/shared/desk-link"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { createTeamMember, sendInvite } from "@/lib/actions"
+import { createTeamMember, sendInvite, updateTeamMember } from "@/lib/actions"
 import { api } from "@/lib/frappe/client"
 import { formatDate } from "@/lib/format"
 
@@ -16,6 +15,8 @@ interface Member {
   last_login?: string
   roles: string[]
   profiles: string[]
+  enabled: number
+  editable: boolean
 }
 
 export default async function TeamPage() {
@@ -49,12 +50,29 @@ export default async function TeamPage() {
         columns={[
           { header: "Name", cell: (row) => <div><p className="font-medium">{row.full_name || row.name}</p><p className="mt-0.5 text-xs text-[#6A6C8C]">{row.email}</p></div> },
           { header: "Access", wide: true, cell: (row) => <span className="whitespace-normal">{(row.profiles.length ? row.profiles : row.roles.map((role) => role.replace("Quality Care ", ""))).join(", ")}</span> },
-          { header: "Status", cell: (row) => (row.last_login ? <span className="text-sm">Last signed in {formatDate(row.last_login)}</span> : <StatusBadge status="Never signed in" />) },
+          { header: "Status", cell: (row) => (!row.enabled ? <StatusBadge status="Deactivated" /> : row.last_login ? <span className="text-sm">Last signed in {formatDate(row.last_login)}</span> : <StatusBadge status="Never signed in" />) },
           {
             header: "Welcome email",
-            cell: (row) => <ActionButton size="sm" variant={row.last_login ? "outline" : "default"} label={row.last_login ? "Send again" : "Send"} success={`Welcome email sent to ${row.email}`} confirm={`Email ${row.email} a link to choose a password? Their current password keeps working until they use it.`} action={sendInvite.bind(null, row.name)} />,
+            cell: (row) => !row.enabled ? null : <ActionButton size="sm" variant={row.last_login ? "outline" : "default"} label={row.last_login ? "Send again" : "Send"} success={`Welcome email sent to ${row.email}`} confirm={`Email ${row.email} a link to choose a password? Their current password keeps working until they use it.`} action={sendInvite.bind(null, row.name)} />,
           },
-          { header: "Desk", wide: true, cell: (row) => <DeskLink doctype="User" name={row.name} label="Open" /> },
+          {
+            header: "",
+            cell: (row) =>
+              row.editable ? (
+                <FormDialog
+                  key={JSON.stringify(row)}
+                  title={`Edit ${row.full_name || row.name}`}
+                  triggerLabel="Edit"
+                  trigger="edit"
+                  success="Access updated"
+                  fields={[
+                    { ...fields[2], initial: row.profiles.join(","), hint: "Saving replaces the roles they have now with the ones in these profiles." },
+                    { name: "enabled", label: "Access", type: "select", required: true, full: true, initial: String(row.enabled), options: [{ value: "1", label: "Active" }, { value: "0", label: "Deactivated" }], hint: "Deactivating signs them out straight away." },
+                  ]}
+                  action={updateTeamMember.bind(null, row.name)}
+                />
+              ) : null,
+          },
         ]}
         rows={users}
         rowKey={(row) => row.name}
@@ -62,7 +80,7 @@ export default async function TeamPage() {
         emptyDescription="Add your first colleague to get started."
         emptyIcon={UsersRound}
       />
-      <p className="mt-3 text-xs text-[#6A6C8C]">To change what someone can see or remove their access, open them in Desk. What each role can see is set in Desk&apos;s Role Permissions Manager.</p>
+      <p className="mt-3 text-xs text-[#6A6C8C]">What each role can see is set in the full system&apos;s Role Permissions Manager. You can&apos;t change your own access here.</p>
     </div>
   )
 }

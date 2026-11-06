@@ -1,7 +1,6 @@
 import { ActionButton } from "@/components/forms/action-button"
 import { CompletedToggle } from "@/components/forms/completed-toggle"
 import { FormDialog } from "@/components/forms/form-dialog"
-import { DeskLink } from "@/components/shared/desk-link"
 import { KpiCard } from "@/components/shared/kpi-card"
 import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
@@ -40,7 +39,6 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
           <>
             <StatusBadge status={batch.status} />
             <PrintLink kind="class" name={name} label="Class list" />
-            <DeskLink doctype="Training Batch" name={name} />
             {edit && (
               <FormDialog
                 title="Change status"

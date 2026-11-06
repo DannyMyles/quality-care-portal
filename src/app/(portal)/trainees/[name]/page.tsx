@@ -2,8 +2,8 @@ import { traineeFields } from "@/components/forms/fields"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { ChartCard } from "@/components/charts/chart-card"
-import { DeskLink } from "@/components/shared/desk-link"
 import { PageHeader } from "@/components/shared/page-header"
+import { PrintLink } from "@/components/shared/print-link"
 import { RecordLink, RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { createTraineeCustomer, saveTrainee, type FormValues } from "@/lib/actions"
@@ -40,7 +40,6 @@ export default async function TraineePage({ params }: { params: Promise<{ name: 
         description={trainee.profession}
         actions={
           <>
-            <DeskLink doctype="Trainee" name={name} />
             {me.can.edit_trainees && !trainee.customer && (
               <ActionButton variant="outline" label="Bill to themselves" success="Customer record created" action={createTraineeCustomer.bind(null, name)} />
             )}
@@ -90,7 +89,7 @@ export default async function TraineePage({ params }: { params: Promise<{ name: 
             { header: "Issued", cell: (row) => formatDate(row.issue_date) },
             { header: "Expires", cell: (row) => formatDate(row.expiry_date) },
             { header: "Status", cell: (row) => <StatusBadge status={row.status} /> },
-            { header: "PDF", cell: (row) => (row.status === "Issued" ? <a href={`/certificates/${encodeURIComponent(row.name)}/pdf`} target="_blank" rel="noopener" className="font-medium text-[#2E3094] hover:underline">Download</a> : "—") },
+            { header: "PDF", cell: (row) => (row.status === "Issued" ? <PrintLink kind="certificate" name={row.name} label="Download" /> : "—") },
           ]}
           rows={certificates}
           rowKey={(row) => row.name}
