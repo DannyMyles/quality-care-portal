@@ -1,3 +1,4 @@
+import { shortCompany } from "@/lib/company"
 import Link from "next/link"
 import { AlertTriangle, Award, Calendar, CheckCircle2, ChevronRight, InfoIcon, Tractor, UsersRound } from "@/components/icons"
 import { DivergingBars, RankedBars } from "@/components/charts/bars"
@@ -29,7 +30,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <div className="flex flex-col gap-6">
       <DashboardHeader
         firstName={me.full_name.split(" ")[0]}
-        subtitle={overview ? "How Quality Care is doing, and what needs you next." : "Your work at a glance."}
+        subtitle={overview ? `How ${shortCompany(me.company)} is doing, and what needs you next.` : "Your work at a glance."}
         actions={<PeriodFilter years={queue.years} defaultLabel={overview ? `Latest figures (${overview.from_date.slice(0, 4)})` : "This year"} />}
         quote={<QuoteCard quote={quote} />}
       />
@@ -160,7 +161,7 @@ function FinanceCharts({ overview, queue, me, label }: { overview: Overview; que
             ))}
           </ul>
         </ChartCard>
-        <ChartCard title="Owed to Quality Care" subtitle={`${overview.receivables.count} customer${overview.receivables.count === 1 ? "" : "s"}, ${formatKes(overview.receivables.total)} in all`}>
+        <ChartCard title={`Owed to ${shortCompany(me.company)}`} subtitle={`${overview.receivables.count} customer${overview.receivables.count === 1 ? "" : "s"}, ${formatKes(overview.receivables.total)} in all`}>
           {overview.receivables.customers.length ? (
             <RankedBars rows={overview.receivables.customers.map((row) => ({ name: row.customer, value: row.amount }))} />
           ) : (

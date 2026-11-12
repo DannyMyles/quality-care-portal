@@ -1,3 +1,4 @@
+import { shortCompany } from "@/lib/company"
 import { RankedBars } from "@/components/charts/bars"
 import { ChartCard } from "@/components/charts/chart-card"
 import { InfoIcon, Wrench } from "@/components/icons"
@@ -42,7 +43,7 @@ export default async function EquipmentPage({ searchParams }: { searchParams: Pr
   const count = data.categories.reduce((sum, row) => sum + row.count, 0)
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title="Equipment" description="Training equipment and office items owned by Quality Care." actions={<><PrintLink report="equipment-register" label="Print register" />{add}</>} />
+      <PageHeader title="Equipment" description={`Equipment owned by ${shortCompany(me.company)}.`} actions={<><PrintLink report="equipment-register" label="Print register" />{add}</>} />
       <p className="flex items-start gap-2.5 rounded-xl bg-[#00A3E0]/10 px-4 py-3 text-sm">
         <InfoIcon className="mt-0.5 size-4 shrink-0 text-[#0078A8]" />
         This is a register for now. Its value isn&apos;t on the balance sheet until the accountant decides the opening entry.

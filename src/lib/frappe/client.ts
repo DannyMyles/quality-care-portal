@@ -38,7 +38,19 @@ interface CallOptions {
   body?: Record<string, unknown>
 }
 
+/** The company the person picked in the switcher. Frappe checks they may use it. */
+export const COMPANY_COOKIE = "qc_company"
+
+async function chosenCompany() {
+  try {
+    return (await cookies()).get(COMPANY_COOKIE)?.value
+  } catch {
+    return undefined
+  }
+}
+
 async function call<T>(endpoint: string, { params, body }: CallOptions, token?: string): Promise<T> {
+  const company = token ? await chosenCompany() : undefined
   const url = new URL(`${API_BASE}.${endpoint}`)
   for (const [key, value] of Object.entries(params ?? {})) {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value))
@@ -49,6 +61,7 @@ async function call<T>(endpoint: string, { params, body }: CallOptions, token?: 
     headers: {
       ...siteHeaders,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(company ? { "X-QC-Company": company } : {}),
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,

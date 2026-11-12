@@ -11,6 +11,8 @@ export default async function PortalLayout({ children }: { children: React.React
     <PortalShell
       can={me.can}
       desk={me.desk}
+      company={me.company}
+      companies={me.companies ?? [me.company]}
       userName={me.full_name}
       primaryRole={me.roles[0]?.replace("Quality Care ", "")}
       notifications={queue.items.map((item) => ({

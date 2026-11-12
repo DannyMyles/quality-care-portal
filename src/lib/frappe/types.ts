@@ -55,6 +55,7 @@ export interface Me {
   user_image?: string
   roles: string[]
   company: string
+  companies: string[]
   logo?: string
   desk: boolean
   can: Can

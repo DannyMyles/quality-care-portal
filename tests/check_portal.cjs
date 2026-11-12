@@ -363,6 +363,19 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     ctx = await withCookie("not-a-real-session"); p = await ctx.newPage(); await p.goto(BASE + "/dashboard"); ok(/\/login/.test(p.url()), "forged cookie is ignored")
   }
 
+  // Switching company
+  {
+    const s = await session(browser, "sole@test.local"); await s.waitForLoadState("networkidle")
+    const sw = s.getByRole("button", { name: /Change company/ }); ok((await sw.innerText()).includes("Quality Care"), "the switcher shows the company being worked in")
+    await sw.click(); await s.getByRole("menuitem", { name: "Highlead Solutions Limited" }).click()
+    await s.getByRole("button", { name: /Company: Highlead/ }).waitFor({ timeout: 60000 })
+    await go(s, "/books/journals"); ok((await s.locator("main").innerText()).includes("Tractor log"), "the books follow the chosen company")
+    await go(s, "/equipment"); ok((await s.locator("main").innerText()).includes("Nardi Plough"), "equipment follows the chosen company"); await shot(s, "95_highlead")
+    await s.getByRole("button", { name: /Change company/ }).click(); await s.getByRole("menuitem", { name: /Quality Care/ }).click()
+    await s.getByRole("button", { name: /Company: Quality Care/ }).waitFor({ timeout: 60000 })
+    await go(s, "/equipment"); ok(!(await s.locator("main").innerText()).includes("Nardi Plough"), "switching back shows Quality Care again")
+  }
+
   // Phone width
   {
     const m = await session(browser, "sole@test.local", { width: 390, height: 844 })
