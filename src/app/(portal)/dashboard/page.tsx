@@ -1,4 +1,4 @@
-import { shortCompany } from "@/lib/company"
+import { isQualityCare, shortCompany } from "@/lib/company"
 import Link from "next/link"
 import { AlertTriangle, Award, Calendar, CheckCircle2, ChevronRight, InfoIcon, Tractor, UsersRound } from "@/components/icons"
 import { DivergingBars, RankedBars } from "@/components/charts/bars"
@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils"
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const chosen = readPeriod(await searchParams)
-  const [me, quote] = await Promise.all([getMe(), getRandomQuote()])
+  const me = await getMe()
+  const quote = await getRandomQuote(isQualityCare(me.company))
   const overview = me.can.finance ? await api<Overview>("overview", { params: chosen ? { from_date: chosen.from, to_date: chosen.to } : {} }) : null
   const today = todayIso()
   const range = overview ? { from: overview.from_date, to: overview.to_date } : chosen ?? { from: `${today.slice(0, 4)}-01-01`, to: today }

@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { signOut } from "@/lib/actions"
 import { PORTAL_NAV } from "@/lib/nav/portal-nav"
+import { navLabel } from "@/lib/company"
 
 export interface TopbarNotification {
   id: string
@@ -60,7 +61,7 @@ export function Topbar({
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
         <CompanySwitcher company={company} companies={companies} />
         <span className="hidden text-[#C4C6DA] sm:inline">/</span>
-        <span className="truncate font-semibold text-[#12133D]">{current?.label ?? (pathname.startsWith("/account") ? "My account" : "Portal")}</span>
+        <span className="truncate font-semibold text-[#12133D]">{(current && navLabel(current.label, company)) ?? (pathname.startsWith("/account") ? "My account" : "Portal")}</span>
       </nav>
 
       <div className="flex items-center gap-3">

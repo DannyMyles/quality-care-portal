@@ -1,4 +1,5 @@
 import { Tractor } from "@/components/icons"
+import { otherCompany } from "@/components/shared/other-company"
 import { PeriodChart } from "@/components/charts/period-chart"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog } from "@/components/forms/form-dialog"
@@ -21,6 +22,8 @@ export default async function TractorPage({ searchParams }: { searchParams: Prom
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
+  const away = otherCompany(me, "tractor", "Tractor jobs")
+  if (away) return away
   const period = readPeriod(params)
   const data = await api<Page<TractorLog> & { customers: string[]; years: string[] }>("tractor_logs", { params: { status: params.status, search: params.search, customer: params.customer, from_date: period?.from, to_date: period?.to, start, limit } })
   let profit: Period[] = []
@@ -47,7 +50,7 @@ export default async function TractorPage({ searchParams }: { searchParams: Prom
       cell: (row) =>
         row.sales_invoice ? (
           me.can.invoices ? <RecordLink href={`/invoices/${encodeURIComponent(row.sales_invoice)}`}>{row.sales_invoice}</RecordLink> : row.sales_invoice
-        ) : me.can.invoices ? (
+        ) : me.can.invoices && row.status !== "Booked" ? (
           <ActionButton size="sm" variant="outline" label="Create invoice" success="Draft invoice created" action={createTractorInvoice.bind(null, row.name)} />
         ) : (
           "—"

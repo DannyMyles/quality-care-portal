@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/forms/action-button"
+import { otherCompany } from "@/components/shared/other-company"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { DetailList } from "@/components/shared/detail-list"
 import { PageHeader } from "@/components/shared/page-header"
@@ -14,6 +15,8 @@ import { tractorFields } from "../fields"
 export default async function TractorJobPage({ params }: { params: Promise<{ name: string }> }) {
   const name = decodeURIComponent((await params).name)
   const me = await getMe()
+  const away = otherCompany(me, "tractor", "Tractor jobs")
+  if (away) return away
   const job = await api<TractorLog & { notes?: string }>("tractor_log", { params: { name } })
   const saved = job as unknown as Record<string, string | number | undefined>
   return (
@@ -25,8 +28,8 @@ export default async function TractorJobPage({ params }: { params: Promise<{ nam
           <>
             <StatusBadge status={job.status} />
             <PrintLink kind="tractor" name={name} />
-            {!job.sales_invoice && me.can.invoices && <ActionButton variant="outline" label="Create invoice" success="Draft invoice created" action={createTractorInvoice.bind(null, name)} />}
-            {!job.sales_invoice && me.can.edit_tractor && (
+            {!job.sales_invoice && job.status !== "Booked" && me.can.invoices && <ActionButton variant="outline" label="Create invoice" success="Draft invoice created" action={createTractorInvoice.bind(null, name)} />}
+            {!job.sales_invoice && job.status !== "Booked" && me.can.edit_tractor && (
               <FormDialog
                 key={JSON.stringify(job)}
                 title="Edit tractor job"

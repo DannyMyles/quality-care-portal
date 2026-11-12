@@ -1,4 +1,5 @@
 import { InfoIcon, Phone } from "@/components/icons"
+import { otherCompany } from "@/components/shared/other-company"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { FilterBar, PeriodFilter, SearchFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
@@ -15,6 +16,8 @@ export default async function PaymentsPage({ searchParams }: { searchParams: Pro
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
+  const away = otherCompany(me, "mpesa", "M-Pesa payments")
+  if (away) return away
   const chosen = readPeriod(params)
   const data = await api<Page<MpesaPayment> & { enabled: boolean; years: string[] }>("mpesa_payments", { params: { status: params.status, search: params.search, from_date: chosen?.from, to_date: chosen?.to, start, limit } })
   const columns: Column<MpesaPayment>[] = [

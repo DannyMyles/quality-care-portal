@@ -7,6 +7,8 @@ const API = FRAPPE + "/api/method/quality_care.api.v1."
 let pass = 0, fail = 0
 const ok = (c, m) => { c ? pass++ : fail++; console.log((c ? "PASS " : "FAIL ") + m) }
 const problems = []
+const HIGHLEAD = "Highlead Solutions Limited"
+async function inCompany(page, name) { await page.context().addCookies([{ name: "qc_company", value: name, url: BASE }]) }
 async function session(browser, email, viewport = { width: 1440, height: 900 }) {
   const ctx = await browser.newContext({ viewport })
   const page = await ctx.newPage(); page.setDefaultTimeout(30000)
@@ -130,7 +132,7 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
   await go(trac, "/tractor"); await button(trac, "Record job").click()
   await fillDialog(trac, { "Customer": { pick: hospital }, "Service": { pick: "Tractor Hire" }, "Quantity": 2.5, "Rate (KES)": 4000, "Location": "Nakuru" }); await shot(trac, "40_tractor_form", false); await submit(trac, "Save"); await toasted(trac, "Job recorded"); await trac.waitForLoadState("networkidle")
   ok((await trac.locator("main").innerText()).includes("10,000"), "supervisor records a part-acre job"); ok(!/Tractor income and costs/.test(await trac.locator("main").innerText()), "supervisor sees no tractor profit")
-  await go(acct, "/tractor?status=To+Invoice"); await shot(acct, "41_tractor_finance"); await button(acct, "Create invoice").click(); await toasted(acct, "Draft invoice created"); ok(true, "accounts invoices the job")
+  await inCompany(acct, HIGHLEAD); await go(acct, "/tractor?status=To+Invoice"); await shot(acct, "41_tractor_finance"); await button(acct, "Create invoice").click(); await toasted(acct, "Draft invoice created"); ok(true, "accounts invoices the job"); await inCompany(acct, "Quality Care Trainers Holdings Company")
 
   // Dashboard and books
   const sole = await session(browser, "sole@test.local")
@@ -140,7 +142,7 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
   await sole.getByRole("button", { name: "table", exact: true }).first().click(); ok((await sole.locator("main").innerText()).includes("Jan–Sep 2024"), "charts have a table view"); await sole.getByRole("button", { name: "chart", exact: true }).first().click()
   await sole.locator(".recharts-bar-rectangle").first().hover(); await sole.getByText("Bars show the average per month").waitFor({ timeout: 5000 }).then(() => ok(true, "chart tooltip explains the average")).catch(() => ok(false, "chart tooltip explains the average"))
   await go(sole, "/reports"); await shot(sole, "51_reports", false)
-  for (const [slug, text] of [["business-line-profit", "Training"], ["trainer-wht", "Florence"], ["batch-income", "Monthly"], ["certificates", ""], ["tractor-profit", "2024"], ["unsigned-invoices", ""]]) { await go(sole, `/reports/${slug}?from=2024-01-01&to=2026-12-31`); ok((await sole.locator("main").innerText()).includes(text) && !/couldn't load/i.test(await sole.content()), "report opens: " + slug) }
+  for (const [slug, text] of [["business-line-profit", "Training"], ["trainer-wht", "Florence"], ["batch-income", "Monthly"], ["certificates", ""], ["unsigned-invoices", ""]]) { await go(sole, `/reports/${slug}?from=2024-01-01&to=2026-12-31`); ok((await sole.locator("main").innerText()).includes(text) && !/couldn't load/i.test(await sole.content()), "report opens: " + slug) }
   await shot(sole, "52_report")
   await sole.goto(BASE + "/reports/business-line-profit?from=2024-01-01&to=2024-12-31"); await openActions(sole); const [dl] = await Promise.all([sole.waitForEvent("download"), sole.getByRole("button", { name: "Download" }).click()]); ok(/business-line-profit/.test(dl.suggestedFilename()), "report downloads")
 
@@ -150,7 +152,7 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
   await sole.locator("aside").getByRole("link", { name: "Journal Entries" }).click(); await sole.waitForURL(/\/books\/journals/); await sole.waitForLoadState("networkidle"); ok((await sole.locator("main").innerText()).includes("ACC-JV-"), "Books opens Journal Entries from the sidebar")
   await sole.getByRole("link", { name: /ACC-JV-/ }).first().click(); await sole.waitForURL(/\/books\/journals\/ACC-JV/); await sole.waitForLoadState("networkidle"); ok((await sole.locator("main").innerText()).includes("Opening Balance Equity"), "journal entry opens with its lines"); await shot(sole, "54_journal", false)
   await go(sole, "/suppliers"); text = await sole.locator("main").innerText(); ok(text.includes("Eric") && text.includes("A005185947X"), "suppliers show trainers and PINs"); await shot(sole, "55_suppliers", false)
-  await go(sole, "/services"); text = await sole.locator("main").innerText(); ok(text.includes("Monthly Training") && text.includes("Trainer Fee") && text.includes("Tractor Hire"), "courses and services listed"); await shot(sole, "56_services", false)
+  await go(sole, "/services"); text = await sole.locator("main").innerText(); ok(text.includes("Monthly Training") && text.includes("Trainer Fee") && !text.includes("Tractor Hire"), "courses and services listed, the tractor's under Highlead"); await shot(sole, "56_services", false)
   // Greeting, clock, quote and the period picker
   await go(sole, "/dashboard"); {
     const heading = await sole.locator("h1").first().innerText(); ok(/^(Good (morning|afternoon|evening)|Welcome), /.test(heading), "dashboard greets by time of day")
@@ -162,7 +164,7 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     await go(sole, "/dashboard?from=2024-11-01&to=2024-11-30"); text = await sole.locator("main").innerText(); ok(text.includes("Nov 2024") && /(Up|Down) \d+% on Oct 2024/.test(text), "one month shows, with the month before to compare"); ok(await sole.locator('input[aria-label="From date"]').count() === 1, "custom dates stay visible")
     await go(sole, "/dashboard?from=2024-01-01&to=2024-03-31"); ok((await sole.locator("main").innerText()).includes("can't be split by month"), "part of the lump warns")
     await go(sole, "/dashboard?year=nonsense"); ok(/Net profit, \d{4}/.test(await sole.locator("main").innerText()) && !(await sole.locator("main").innerText()).includes("nonsense"), "a bad year falls back to the latest figures")
-    await go(sole, "/tractor?year=2025"); ok((await sole.locator("main").innerText()).includes("No tractor income or costs are posted for 2025"), "tractor chart follows the period")
+    await inCompany(sole, HIGHLEAD); await go(sole, "/tractor?year=2025"); await inCompany(sole, "Quality Care Trainers Holdings Company"); ok((await sole.locator("main").innerText()).includes("No tractor income or costs are posted for 2025"), "tractor chart follows the period")
     await go(sole, "/trainers"); ok(/Records run from .*2024/.test(await sole.locator("main").innerText()), "trainers say what's on record, from the data")
     await go(sole, "/reports/business-line-profit?year=2024"); ok(await sole.getByRole("combobox", { name: "Period" }).count() === 1, "reports use the same picker")
   }
@@ -226,10 +228,10 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     await go(coord, "/services"); ok(await coord.getByRole("button", { name: "Edit price" }).count() === 0, "a coordinator doesn't see the price button")
     await setPrice("Monthly Training", 4000); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("4,000"), "standard price shows"); await shot(sole, "81_prices", false)
     await sole.locator("tr", { hasText: "Monthly Training" }).getByRole("button", { name: "Edit price" }).click(); ok(await dlg(sole).locator("#standard_rate").inputValue() === "4000", "price form reopens with what was saved"); await shot(sole, "82_price_form", false); await sole.keyboard.press("Escape")
-    await setPrice("Tractor Hire", 1500)
+    await inCompany(sole, HIGHLEAD); await setPrice("Tractor Hire", 1500); await inCompany(sole, "Quality Care Trainers Holdings Company")
     await go(sole, "/batches"); await sole.getByRole("button", { name: "New class" }).click(); await fillDialog(sole, { "Course": { pick: "Monthly Training" } }); ok(await dlg(sole).locator("#standard_fee").inputValue() === "4000", "a new class starts from the standard price"); await sole.keyboard.press("Escape")
-    await go(sole, "/tractor"); await sole.getByRole("button", { name: "Record job" }).click(); await fillDialog(sole, { "Service": { pick: "Tractor Hire" } }); ok(await dlg(sole).locator("#rate").inputValue() === "1500", "a tractor job starts from the standard price"); await sole.keyboard.press("Escape")
-    await setPrice("Monthly Training", 0); await setPrice("Tractor Hire", 0); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("Set per class or job"), "zero puts it back to set per class or job")
+    await inCompany(sole, HIGHLEAD); await go(sole, "/tractor"); await sole.getByRole("button", { name: "Record job" }).click(); await fillDialog(sole, { "Service": { pick: "Tractor Hire" } }); ok(await dlg(sole).locator("#rate").inputValue() === "1500", "a tractor job starts from the standard price"); await sole.keyboard.press("Escape"); await inCompany(sole, "Quality Care Trainers Holdings Company")
+    await inCompany(sole, HIGHLEAD); await setPrice("Tractor Hire", 0); await inCompany(sole, "Quality Care Trainers Holdings Company"); await setPrice("Monthly Training", 0); ok((await sole.locator("tr", { hasText: "Monthly Training" }).innerText()).includes("Set per class or job"), "zero puts it back to set per class or job")
     // Add buttons open out on hover, and editing is a pencil
     await go(sole, "/customers"); { const add = sole.getByRole("button", { name: "New customer" }); await sole.mouse.move(0, 0); await sole.waitForTimeout(300); const shut = await add.boundingBox(); ok(shut.width <= 44, "add button starts as just the icon"); await add.hover(); await sole.waitForTimeout(350); const open = await add.boundingBox(); ok(open.width > 100 && (await add.innerText()).includes("New customer"), "hovering opens it out to show the label"); await shot(sole, "83_add_hover", false) }
     await sole.mouse.move(0, 0); await sole.waitForTimeout(300); await sole.keyboard.press("Tab"); { let wide = false; for (let i = 0; i < 40 && !wide; i++) { const on = await sole.evaluate(() => document.activeElement?.getAttribute("aria-label")); if (on === "New customer") { await sole.waitForTimeout(350); wide = (await sole.getByRole("button", { name: "New customer" }).boundingBox()).width > 100 } else await sole.keyboard.press("Tab") } ok(wide, "reaching it by keyboard opens it out too") }
@@ -239,8 +241,8 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
     await go(coord, "/suppliers/Eric"); ok(/isn't part of your role/.test(await coord.content()), "coordinator refused a supplier page")
     await go(sole, "/equipment?search=" + encodeURIComponent("Manual Defibrillator #1")); await sole.getByRole("link", { name: "Manual Defibrillator #1" }).first().click(); await sole.waitForURL(/\/equipment\/.+/); await sole.waitForLoadState("networkidle"); text = await sole.locator("main").innerText(); ok(text.includes("Kazmar") && text.includes("US00324795"), "equipment page shows where it came from"); await shot(sole, "86_equipment_item", false)
     await go(sole, "/bills"); await sole.locator("main table tbody a").first().click(); await sole.waitForURL(/\/bills\/.+/); await sole.waitForLoadState("networkidle"); text = await sole.locator("main").innerText(); ok(text.includes("To pay") && text.includes("What for"), "bill page shows its lines"); await shot(sole, "87_bill", false)
-    await go(sole, "/tractor"); await sole.locator("main table tbody a[href^='/tractor/']").first().click(); await sole.waitForURL(/\/tractor\/.+/); await sole.waitForLoadState("networkidle"); text = await sole.locator("main").innerText(); ok(text.includes("Rate") && text.includes("Amount"), "tractor job page shows its details"); await shot(sole, "88_tractor_job", false)
-    if (await sole.getByRole("button", { name: "Edit tractor job" }).count()) { await sole.getByRole("button", { name: "Edit tractor job" }).click(); await dlg(sole).locator("#location").fill("Portal Farm " + RUN); await saved(sole); await sole.reload(); await sole.waitForLoadState("networkidle"); ok((await sole.locator("main").innerText()).includes("Portal Farm " + RUN), "a tractor job can be edited from its page") } else ok(true, "invoiced job has no edit button")
+    await inCompany(sole, HIGHLEAD); await go(sole, "/tractor"); await sole.locator("main table tbody a[href^='/tractor/']").first().click(); await sole.waitForURL(/\/tractor\/.+/); await sole.waitForLoadState("networkidle"); text = await sole.locator("main").innerText(); ok(text.includes("Rate") && text.includes("Amount"), "tractor job page shows its details"); await shot(sole, "88_tractor_job", false)
+    if (await sole.getByRole("button", { name: "Edit tractor job" }).count()) { await sole.getByRole("button", { name: "Edit tractor job" }).click(); await dlg(sole).locator("#location").fill("Portal Farm " + RUN); await saved(sole); await sole.reload(); await sole.waitForLoadState("networkidle"); ok((await sole.locator("main").innerText()).includes("Portal Farm " + RUN), "a tractor job can be edited from its page") } else ok(true, "invoiced job has no edit button"); await inCompany(sole, "Quality Care Trainers Holdings Company")
     await go(sole, "/team"); await sole.getByRole("button", { name: "Edit Portal Colleague" }).click(); ok(await dlg(sole).getByLabel("Tractor Supervisor").isChecked(), "team edit shows their current profiles"); await shot(sole, "89_team_edit", false); await dlg(sole).getByLabel("Tractor Supervisor").uncheck(); await choose(sole, "enabled", "Deactivated"); await saved(sole); await go(sole, "/team"); { const line = await sole.locator("tr", { hasText: colleague }).innerText(); ok(line.includes("Deactivated") && line.includes("Training Coordinator") && !line.includes("Tractor Supervisor"), "team edit changes access and deactivates") }
     ok(await sole.getByRole("button", { name: "Edit sole" }).count() === 0, "you can't edit your own access")
   }
@@ -366,14 +368,26 @@ const navLabels = (p) => p.locator("aside nav a").allTextContents()
   // Switching company
   {
     const s = await session(browser, "sole@test.local"); await s.waitForLoadState("networkidle")
+    const menu = async () => (await s.locator("aside nav").innerText()).split("\n").map((line) => line.trim())
+    let items = await menu()
+    ok(items.includes("Classes") && items.includes("Trainees") && !items.includes("Tractor Hire"), "Quality Care's menu has training and no tractor: " + items.join(","))
+    await go(s, "/batches")
     const sw = s.getByRole("button", { name: /Change company/ }); ok((await sw.innerText()).includes("Quality Care"), "the switcher shows the company being worked in")
     await sw.click(); await s.getByRole("menuitem", { name: "Highlead Solutions Limited" }).click()
     await s.getByRole("button", { name: /Company: Highlead/ }).waitFor({ timeout: 60000 })
+    await s.waitForURL(/\/dashboard/, { timeout: 60000 }); ok(true, "switching away from a Quality Care page lands on the dashboard")
+    items = await menu()
+    ok(items.includes("Tractor Hire") && !["Classes", "Trainees", "Certificates", "Trainers & WHT", "Import from Excel"].some((x) => items.includes(x)), "Highlead's menu has the tractor and no training: " + items.join(","))
+    ok(!/Classes|Certificates/.test(await s.locator("main").innerText()), "Highlead's dashboard has no training tiles")
+    await go(s, "/tractor"); const jobs = await s.locator("main").innerText()
+    ok(jobs.includes("Tractor Cash Customer") && !jobs.includes("Create invoice"), "Highlead's tractor jobs show, booked ones without an invoice button")
     await go(s, "/books/journals"); ok((await s.locator("main").innerText()).includes("Tractor log"), "the books follow the chosen company")
     await go(s, "/equipment"); ok((await s.locator("main").innerText()).includes("Nardi Plough"), "equipment follows the chosen company"); await shot(s, "95_highlead")
     await s.getByRole("button", { name: /Change company/ }).click(); await s.getByRole("menuitem", { name: /Quality Care/ }).click()
     await s.getByRole("button", { name: /Company: Quality Care/ }).waitFor({ timeout: 60000 })
     await go(s, "/equipment"); ok(!(await s.locator("main").innerText()).includes("Nardi Plough"), "switching back shows Quality Care again")
+    items = await menu(); ok(items.includes("Classes") && !items.includes("Tractor Hire"), "switching back brings training back and hides the tractor")
+    await go(s, "/tractor"); ok(!(await s.locator("main").innerText()).includes("Tractor Cash Customer"), "Quality Care lists no Highlead tractor jobs")
   }
 
   // Phone width

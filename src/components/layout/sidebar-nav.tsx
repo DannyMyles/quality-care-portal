@@ -10,14 +10,17 @@ import { ChevronDownIcon, ExternalLink } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { PORTAL_NAV_GROUPS } from "@/lib/nav/portal-nav"
 import type { Can } from "@/lib/frappe/types"
+import { initials, isQualityCare, navLabel, shortCompany } from "@/lib/company"
 
 export function SidebarNav({
   can,
   desk,
+  company,
   collapsed,
   onToggle,
 }: {
   can: Can
+  company: string
   desk: boolean
   collapsed: boolean
   onToggle: () => void
@@ -26,7 +29,7 @@ export function SidebarNav({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const groups = PORTAL_NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter((item) => !item.can || can[item.can]),
+    items: group.items.filter((item) => !item.can || can[item.can]).map((item) => ({ ...item, label: navLabel(item.label, company) })),
   })).filter((group) => group.items.length > 0)
 
   return (
@@ -34,9 +37,15 @@ export function SidebarNav({
       <div className="flex h-full flex-col overflow-hidden bg-white shadow-[2px_0_24px_rgba(18,19,61,0.05)]">
         <div className={cn("flex shrink-0 items-center", collapsed ? "h-20 justify-center" : "h-24 px-6")}>
           {collapsed ? (
-            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#2E3094] to-[#00A3E0] text-sm font-bold text-white">QC</span>
-          ) : (
+            <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#2E3094] to-[#00A3E0] text-sm font-bold text-white">{isQualityCare(company) ? "QC" : initials(company)}</span>
+          ) : isQualityCare(company) ? (
             <Image src="/logo-full.png" alt="Quality Care" width={788} height={193} className="h-11 w-auto" priority />
+          ) : (
+            // No logo has been supplied for this company yet, so its name stands in.
+            <span className="flex items-center gap-2.5" aria-label={company}>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#2E3094] to-[#00A3E0] text-sm font-bold text-white">{initials(company)}</span>
+              <span className="text-lg leading-tight font-bold text-[#2E3094]">{shortCompany(company)}</span>
+            </span>
           )}
         </div>
 

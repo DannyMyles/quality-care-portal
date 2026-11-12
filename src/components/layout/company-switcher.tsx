@@ -1,7 +1,7 @@
 "use client"
 
 import { useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Building2, Check, ChevronDownIcon } from "@/components/icons"
 import {
   DropdownMenu,
@@ -15,8 +15,21 @@ import {
 import { switchCompany } from "@/lib/actions"
 import { shortCompany } from "@/lib/company"
 
+/** Sections that belong to one company only: training is Quality Care's, the tractor is Highlead's. */
+const ONE_COMPANY = ["/trainees", "/batches", "/certificates", "/trainers", "/import", "/tractor", "/payments"]
+
+/** Where to land after switching: a single record or a one-company section belongs to the old company. */
+function landing(pathname: string) {
+  const section = "/" + (pathname.split("/")[1] ?? "")
+  if (ONE_COMPANY.includes(section)) return "/dashboard"
+  const parts = pathname.split("/").filter(Boolean)
+  if (section === "/books") return parts.length > 2 ? `/books/${parts[1]}` : null
+  return parts.length > 1 ? section : null
+}
+
 export function CompanySwitcher({ company, companies }: { company: string; companies: string[] }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [pending, start] = useTransition()
 
   if (companies.length < 2) return <span className="hidden text-[#9A9DB8] sm:inline">{shortCompany(company)}</span>
@@ -25,6 +38,8 @@ export function CompanySwitcher({ company, companies }: { company: string; compa
     if (name === company) return
     start(async () => {
       await switchCompany(name)
+      const next = landing(pathname)
+      if (next) router.push(next)
       router.refresh()
     })
   }

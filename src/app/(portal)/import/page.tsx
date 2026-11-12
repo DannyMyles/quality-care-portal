@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation"
+import { otherCompany } from "@/components/shared/other-company"
 import { ImportWizard } from "@/components/import/import-wizard"
 import { PageHeader } from "@/components/shared/page-header"
 import { StatusTabs } from "@/components/shared/status-tabs"
@@ -11,6 +12,8 @@ const COPY = {
 
 export default async function ImportPage({ searchParams }: { searchParams: Promise<{ kind?: string }> }) {
   const me = await getMe()
+  const away = otherCompany(me, "training", "Imports")
+  if (away) return away
   const options = [
     ...(me.can.import_trainees ? [{ value: "trainees", label: "Trainees" }] : []),
     ...(me.can.import_certificates ? [{ value: "certificates", label: "Certificates" }] : []),

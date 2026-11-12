@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { otherCompany } from "@/components/shared/other-company"
 import { GraduationCap } from "@/components/icons"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { traineeFields } from "@/components/forms/fields"
@@ -24,6 +25,8 @@ export default async function TraineesPage({ searchParams }: { searchParams: Pro
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
+  const away = otherCompany(me, "training", "Trainees")
+  if (away) return away
   const data = await api<Page<Trainee> & { professions: string[]; courses: string[] }>("trainees", { params: { search: params.search, profession: params.profession, course: params.course, start, limit } })
   const importLink = me.can.import_trainees ? <Link prefetch={false} href="/import" className="text-sm font-medium text-[#2E3094] hover:underline">Import from Excel</Link> : null
   const add = me.can.edit_trainees ? <FormDialog title="New trainee" triggerLabel="New trainee" trigger="add" success="Trainee saved" fields={traineeFields} action={saveTrainee} goTo="/trainees/{result}" /> : null

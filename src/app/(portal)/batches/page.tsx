@@ -1,4 +1,5 @@
 import { Calendar } from "@/components/icons"
+import { otherCompany } from "@/components/shared/other-company"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
 import { FilterBar, PeriodFilter, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
@@ -41,6 +42,8 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
+  const away = otherCompany(me, "training", "Classes")
+  if (away) return away
   const chosen = readPeriod(params)
   const data = await api<Page<Batch> & { courses: string[]; trainers: string[]; years: string[] }>("batches", { params: { status: params.status, search: params.search, course: params.course, trainer: params.trainer, from_date: chosen?.from, to_date: chosen?.to, start, limit } })
   const add = me.can.edit_batches ? <FormDialog title="New class" triggerLabel="New class" trigger="add" success="Class created" fields={fields} action={saveBatch} goTo="/batches/{result}" /> : null

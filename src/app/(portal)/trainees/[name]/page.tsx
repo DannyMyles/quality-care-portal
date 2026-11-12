@@ -1,4 +1,5 @@
 import { traineeFields } from "@/components/forms/fields"
+import { otherCompany } from "@/components/shared/other-company"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { ChartCard } from "@/components/charts/chart-card"
@@ -20,6 +21,8 @@ interface Detail {
 export default async function TraineePage({ params }: { params: Promise<{ name: string }> }) {
   const name = decodeURIComponent((await params).name)
   const me = await getMe()
+  const away = otherCompany(me, "training", "Trainees")
+  if (away) return away
   const { trainee, batches, certificates } = await api<Detail>("trainee", { params: { name } })
   const update = async (values: FormValues) => {
     "use server"
