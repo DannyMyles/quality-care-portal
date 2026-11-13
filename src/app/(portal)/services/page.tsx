@@ -4,6 +4,7 @@ import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filte
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { setItemPrice } from "@/lib/actions"
+import { isQualityCare, navLabel, shortCompany } from "@/lib/company"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatKes, pageOf } from "@/lib/format"
 import type { Page } from "@/lib/frappe/types"
@@ -31,7 +32,10 @@ export default async function ServicesPage({ searchParams }: { searchParams: Pro
   const data = await api<Page<Item> & { groups: string[] }>("items", { params: { search: params.search, item_group: params.group, start, limit } })
   return (
     <div>
-      <PageHeader title="Courses & Services" description="What Quality Care sells, and the trainer fee it pays." />
+      <PageHeader
+        title={navLabel("Courses & Services", me.company)}
+        description={isQualityCare(me.company) ? "What Quality Care sells, and the trainer fee it pays." : `What ${shortCompany(me.company)} sells.`}
+      />
       <FilterBar>
         <SearchFilter placeholder="Search by name or group" />
         <SelectFilter param="group" placeholder="All groups" options={choices(data.groups)} />

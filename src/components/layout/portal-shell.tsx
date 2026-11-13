@@ -13,6 +13,8 @@ export function PortalShell({
   userName,
   primaryRole,
   notifications,
+  company,
+  companies,
   children,
 }: {
   can: Can
@@ -20,6 +22,8 @@ export function PortalShell({
   userName: string
   primaryRole?: string
   notifications: TopbarNotification[]
+  company: string
+  companies: string[]
   children: ReactNode
 }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -48,9 +52,9 @@ export function PortalShell({
 
   return (
     <div className="flex min-h-screen bg-[#F6F7FB]">
-      <SidebarNav can={can} desk={desk} collapsed={collapsed} onToggle={toggle} />
+      <SidebarNav can={can} desk={desk} company={company} collapsed={collapsed} onToggle={toggle} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar userName={userName} primaryRole={primaryRole} desk={desk} notifications={notifications} />
+        <Topbar userName={userName} primaryRole={primaryRole} desk={desk} notifications={notifications} company={company} companies={companies} />
         <main className="min-w-0 flex-1 p-4 lg:px-7 lg:py-6">{children}</main>
       </div>
     </div>

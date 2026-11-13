@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { revalidatePath } from "next/cache"
 import { cookieOptions, openSession, sealSession, SESSION_COOKIE, toSession, type TokenResponse } from "@/lib/auth/session"
-import { api, errorMessage, FrappeError } from "@/lib/frappe/client"
+import { api, COMPANY_COOKIE, errorMessage, FrappeError } from "@/lib/frappe/client"
 import { API_BASE, FRAPPE_PUBLIC_URL, siteHeaders } from "@/lib/frappe/config"
 
 export type ActionResult<T = unknown> = { ok: true; data: T } | { ok: false; error: string }
@@ -225,3 +225,9 @@ export const allocateMpesa = async (payment: string, values: FormValues) => run(
 export const createBill = async (values: FormValues) => run<{ name: string }>("create_bill", clean(values))
 export const submitBill = async (name: string) => run("submit_bill", { name })
 export const payBill = async (bill: string, values: FormValues) => run("pay_bill", { bill, ...clean(values) })
+
+/** Work in another company. Frappe only honours companies this person may use. */
+export async function switchCompany(name: string) {
+  ;(await cookies()).set(COMPANY_COOKIE, name, { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NODE_ENV === "production" && process.env.SESSION_COOKIE_SECURE !== "false", maxAge: 60 * 60 * 24 * 365 })
+  revalidatePath("/", "layout")
+}

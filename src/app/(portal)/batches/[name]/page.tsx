@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/forms/action-button"
+import { otherCompany } from "@/components/shared/other-company"
 import { CompletedToggle } from "@/components/forms/completed-toggle"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { KpiCard } from "@/components/shared/kpi-card"
@@ -23,6 +24,8 @@ const STATUSES = ["Planned", "In Progress", "Completed", "Cancelled"]
 export default async function BatchPage({ params }: { params: Promise<{ name: string }> }) {
   const name = decodeURIComponent((await params).name)
   const me = await getMe()
+  const away = otherCompany(me, "training", "Classes")
+  if (away) return away
   const { batch, invoices, progress } = await api<Detail>("batch", { params: { name } })
   const rows = batch.trainees ?? []
   const edit = me.can.edit_batches

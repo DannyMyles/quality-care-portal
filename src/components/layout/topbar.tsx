@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import { Bell, ChevronDownIcon, ExternalLink, LogOut, UserCircle } from "@/components/icons"
+import { CompanySwitcher } from "@/components/layout/company-switcher"
 import { GlobalSearch } from "@/components/layout/global-search"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { signOut } from "@/lib/actions"
 import { PORTAL_NAV } from "@/lib/nav/portal-nav"
+import { navLabel } from "@/lib/company"
 
 export interface TopbarNotification {
   id: string
@@ -40,11 +42,15 @@ export function Topbar({
   primaryRole,
   desk,
   notifications,
+  company,
+  companies,
 }: {
   userName: string
   primaryRole?: string
   desk: boolean
   notifications: TopbarNotification[]
+  company: string
+  companies: string[]
 }) {
   const pathname = usePathname()
   const router = useRouter()
@@ -53,9 +59,9 @@ export function Topbar({
   return (
     <header className="sticky top-0 z-20 flex h-[72px] items-center justify-between gap-4 bg-white/90 px-4 shadow-[0_2px_20px_rgba(18,19,61,0.05)] backdrop-blur-md lg:px-7">
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
-        <span className="hidden text-[#9A9DB8] sm:inline">Quality Care</span>
+        <CompanySwitcher company={company} companies={companies} />
         <span className="hidden text-[#C4C6DA] sm:inline">/</span>
-        <span className="truncate font-semibold text-[#12133D]">{current?.label ?? (pathname.startsWith("/account") ? "My account" : "Portal")}</span>
+        <span className="truncate font-semibold text-[#12133D]">{(current && navLabel(current.label, company)) ?? (pathname.startsWith("/account") ? "My account" : "Portal")}</span>
       </nav>
 
       <div className="flex items-center gap-3">

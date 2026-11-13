@@ -1,4 +1,5 @@
 import { RankedBars } from "@/components/charts/bars"
+import { otherCompany } from "@/components/shared/other-company"
 import { ChartCard } from "@/components/charts/chart-card"
 import { Teacher, Wallet, ReceiptText } from "@/components/icons"
 import { FilterBar, PeriodFilter } from "@/components/shared/filters"
@@ -7,7 +8,7 @@ import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusTabs } from "@/components/shared/status-tabs"
-import { api } from "@/lib/frappe/client"
+import { api, getMe } from "@/lib/frappe/client"
 import { compactKes, formatDate, formatKes, pageOf } from "@/lib/format"
 import type { Page } from "@/lib/frappe/types"
 import { describeRange, readPeriod } from "@/lib/period"
@@ -32,6 +33,9 @@ interface Data extends Page<Row> {
 
 export default async function TrainersPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
   const params = await searchParams
+  const me = await getMe()
+  const away = otherCompany(me, "training", "Trainer payments")
+  if (away) return away
   const { page, start, limit } = pageOf(params)
   const chosen = readPeriod(params)
   const data = await api<Data>("trainers", { params: { trainer: params.trainer, start, limit, from_date: chosen?.from, to_date: chosen?.to } })

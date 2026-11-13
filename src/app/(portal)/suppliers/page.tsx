@@ -4,6 +4,7 @@ import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filte
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
 import { createSupplier, updateSupplier } from "@/lib/actions"
+import { isQualityCare, shortCompany } from "@/lib/company"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatKes, pageOf } from "@/lib/format"
 import type { Page } from "@/lib/frappe/types"
@@ -63,7 +64,7 @@ export default async function SuppliersPage({ searchParams }: { searchParams: Pr
   const add = me.can.add_suppliers ? <FormDialog title="New supplier" triggerLabel="New supplier" trigger="add" success="Supplier saved" fields={supplierFields(data.options)} action={createSupplier} /> : null
   return (
     <div>
-      <PageHeader title="Suppliers" description="Trainers and everyone else Quality Care pays." actions={add} />
+      <PageHeader title="Suppliers" description={isQualityCare(me.company) ? "Trainers and everyone else Quality Care pays." : `Everyone ${shortCompany(me.company)} pays.`} actions={add} />
       <FilterBar>
         <SearchFilter placeholder="Search by name, PIN or group" />
         <SelectFilter param="group" placeholder="All groups" options={data.options.groups_in_use.map((value) => ({ value, label: value }))} />

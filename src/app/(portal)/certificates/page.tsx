@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { otherCompany } from "@/components/shared/other-company"
 import { Award } from "@/components/icons"
 import { ActionButton } from "@/components/forms/action-button"
 import { FilterBar, PeriodFilter, SearchFilter, SelectFilter } from "@/components/shared/filters"
@@ -22,6 +23,8 @@ export default async function CertificatesPage({ searchParams }: { searchParams:
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const me = await getMe()
+  const away = otherCompany(me, "training", "Certificates")
+  if (away) return away
   const chosen = readPeriod(params)
   const data = await api<Page<Certificate> & { counts: Record<string, number>; courses: string[]; years: string[] }>("certificates", { params: { status: params.status, search: params.search, course: params.course, from_date: chosen?.from, to_date: chosen?.to, start, limit } })
   const approve = me.can.approve_certificates
