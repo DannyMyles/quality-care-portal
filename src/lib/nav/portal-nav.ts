@@ -1,5 +1,5 @@
 import type { AppIcon } from "@/components/icons"
-import { Award, BarChart3, Bill, Building2, GraduationCap, Landmark, LayoutDashboard, Phone, ReceiptText, Teacher, Tractor, Upload, Users, UsersRound, Wrench, Calendar } from "@/components/icons"
+import { Award, BarChart3, Inbox, Bill, Building2, GraduationCap, Landmark, LayoutDashboard, Phone, ReceiptText, Teacher, Tractor, Upload, Users, UsersRound, Wrench, Calendar } from "@/components/icons"
 import type { Can } from "@/lib/frappe/types"
 
 export interface PortalNavItem {
@@ -25,7 +25,13 @@ export const BOOKS_NAV: PortalNavChild[] = [
 ]
 
 export const PORTAL_NAV_GROUPS: { label: string; items: PortalNavItem[] }[] = [
-  { label: "", items: [{ label: "Dashboard", href: "/dashboard", icon: LayoutDashboard }] },
+  {
+    label: "",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { label: "Inbox", href: "/inbox", icon: Inbox, can: "inbox" },
+    ],
+  },
   {
     label: "Training",
     items: [

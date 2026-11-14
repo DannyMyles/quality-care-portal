@@ -5,6 +5,7 @@ import { ActionButton } from "@/components/forms/action-button"
 import { FilterBar, PeriodFilter, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
+import { EmailButton } from "@/components/email/email-button"
 import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { StatusTabs } from "@/components/shared/status-tabs"
@@ -35,7 +36,18 @@ export default async function CertificatesPage({ searchParams }: { searchParams:
     { header: "Date", cell: (row) => formatDate(row.issue_date) },
     { header: "Expires", cell: (row) => (row.expiry_date ? <span className={isExpired(row.expiry_date) ? "font-medium text-[#B5152A]" : undefined}>{formatDate(row.expiry_date)}{isExpired(row.expiry_date) ? " (expired)" : ""}</span> : "—") },
     { header: "Status", cell: (row) => <StatusBadge status={row.status} /> },
-    { header: "PDF", cell: (row) => (row.status === "Issued" ? <PrintLink kind="certificate" name={row.name} label="Download" /> : "—") },
+    {
+      header: "PDF",
+      cell: (row) =>
+        row.status === "Issued" ? (
+          <div className="flex gap-1.5">
+            <PrintLink kind="certificate" name={row.name} label="Download" />
+            {me.mail.send.certificate && <EmailButton kind="certificate" name={row.name} size="sm" />}
+          </div>
+        ) : (
+          "—"
+        ),
+    },
     ...(approve
       ? [
           {

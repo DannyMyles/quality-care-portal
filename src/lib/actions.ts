@@ -231,3 +231,36 @@ export async function switchCompany(name: string) {
   ;(await cookies()).set(COMPANY_COOKIE, name, { httpOnly: true, sameSite: "lax", path: "/", secure: process.env.NODE_ENV === "production" && process.env.SESSION_COOKIE_SECURE !== "false", maxAge: 60 * 60 * 24 * 365 })
   revalidatePath("/", "layout")
 }
+
+// Email
+export interface EmailDraft {
+  ready: boolean
+  problem: string | null
+  sender: string | null
+  to: string
+  subject: string
+  message: string
+  attachment: string
+}
+
+export async function emailDraft(kind: string, name: string): Promise<ActionResult<EmailDraft>> {
+  try {
+    return { ok: true, data: await api<EmailDraft>("email_draft", { params: { kind, name } }) }
+  } catch (error) {
+    if (error instanceof FrappeError) return { ok: false, error: error.message }
+    throw error
+  }
+}
+
+export const sendEmail = async (kind: string, name: string, values: FormValues) => run("send_email", { kind, name, ...clean(values) })
+export const replyEmail = async (name: string, values: FormValues) => run("reply_email", { name, ...clean(values) })
+export const closeEmail = async (name: string, closed: boolean) => run("close_email", { name, closed: closed ? 1 : 0 })
+export const unfileEmail = async (name: string) => run("file_email", { name })
+
+/** Which pick-list holds each kind of record an email can be filed under. */
+const FILE_UNDER: Record<string, string> = { Customer: "customer", Supplier: "supplier", "Sales Invoice": "any_invoice", "Purchase Invoice": "bill", Trainee: "trainee" }
+
+export async function fileEmail(name: string, values: FormValues) {
+  const doctype = String(values.doctype ?? "")
+  return run("file_email", { name, doctype, docname: values[FILE_UNDER[doctype]] })
+}

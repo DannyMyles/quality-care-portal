@@ -16,11 +16,14 @@ export function SidebarNav({
   can,
   desk,
   company,
+  badges = {},
   collapsed,
   onToggle,
 }: {
   can: Can
   company: string
+  /** A count shown beside a menu item, such as unread emails, by its address. */
+  badges?: Record<string, number>
   desk: boolean
   collapsed: boolean
   onToggle: () => void
@@ -81,6 +84,17 @@ export function SidebarNav({
                         {isActive && !collapsed && <span className="absolute top-1/2 left-0 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-[#2E3094]" />}
                         <Icon className={cn("size-[21px] shrink-0 transition-transform", !isActive && "group-hover:scale-105")} />
                         {!collapsed && <span className="truncate">{item.label}</span>}
+                        {!!badges[item.href] && (
+                          <span
+                            aria-label={`${badges[item.href]} unread`}
+                            className={cn(
+                              "flex h-5 min-w-5 items-center justify-center rounded-full bg-[#00A3E0] px-1.5 text-[11px] font-semibold text-white tabular-nums",
+                              collapsed ? "absolute top-0.5 right-0.5 h-4 min-w-4 px-1 text-[10px]" : "ml-auto"
+                            )}
+                          >
+                            {badges[item.href] > 99 ? "99+" : badges[item.href]}
+                          </span>
+                        )}
                       </Link>
                       {children.length > 0 && (
                         <button
