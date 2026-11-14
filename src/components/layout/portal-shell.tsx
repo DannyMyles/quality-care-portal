@@ -15,8 +15,10 @@ export function PortalShell({
   notifications,
   company,
   companies,
+  badges,
   children,
 }: {
+  badges?: Record<string, number>
   can: Can
   desk: boolean
   userName: string
@@ -52,7 +54,7 @@ export function PortalShell({
 
   return (
     <div className="flex min-h-screen bg-[#F6F7FB]">
-      <SidebarNav can={can} desk={desk} company={company} collapsed={collapsed} onToggle={toggle} />
+      <SidebarNav can={can} desk={desk} company={company} badges={badges} collapsed={collapsed} onToggle={toggle} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Topbar userName={userName} primaryRole={primaryRole} desk={desk} notifications={notifications} company={company} companies={companies} />
         <main className="min-w-0 flex-1 p-4 lg:px-7 lg:py-6">{children}</main>

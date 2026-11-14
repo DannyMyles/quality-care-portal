@@ -4,6 +4,7 @@ import { FormDialog, type FormField } from "@/components/forms/form-dialog"
 import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
+import { EmailButton } from "@/components/email/email-button"
 import { RecordTable, type Column } from "@/components/shared/record-table"
 import { createCustomer } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
@@ -28,7 +29,19 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     { header: "Email", cell: (row) => row.email_id ?? "—", wide: true },
     ...(me.can.finance ? [{ header: "Owes", align: "right" as const, cell: (row: Customer) => formatKes(row.balance) }] : []),
     ...(me.can.invoices ? [{ header: "Invoices", cell: (row: Customer) => <Link prefetch={false} className="font-medium text-[#2E3094] hover:underline" href={`/invoices?customer=${encodeURIComponent(row.name)}`}>View</Link> }] : []),
-    ...(me.can.invoices ? [{ header: "Statement", cell: (row: Customer) => <PrintLink statement="customer" name={row.name} label="Print" /> }] : []),
+    ...(me.can.invoices
+      ? [
+          {
+            header: "Statement",
+            cell: (row: Customer) => (
+              <div className="flex gap-1.5">
+                <PrintLink statement="customer" name={row.name} label="Print" />
+                {me.mail.send.customer && <EmailButton kind="customer" name={row.name} size="sm" />}
+              </div>
+            ),
+          },
+        ]
+      : []),
   ]
   const add = me.can.edit_customers ? <FormDialog title="New customer" triggerLabel="New customer" trigger="add" success="Customer saved" fields={fields} action={createCustomer} /> : null
   return (

@@ -3,6 +3,8 @@ import { paymentFields } from "@/components/forms/fields"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { ChartCard } from "@/components/charts/chart-card"
+import { EmailButton } from "@/components/email/email-button"
+import { EmailHistory } from "@/components/email/email-history"
 import { ActionsMenu } from "@/components/shared/actions-menu"
 import { PrintLink } from "@/components/shared/print-link"
 import { PageHeader } from "@/components/shared/page-header"
@@ -11,13 +13,14 @@ import { StatusBadge } from "@/components/shared/status-badge"
 import { recordPayment, requestMpesa, retryEtims, submitInvoice } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes } from "@/lib/format"
-import type { Invoice } from "@/lib/frappe/types"
+import type { EmailRow, Invoice } from "@/lib/frappe/types"
 
 interface Detail {
   invoice: Invoice
   items: { item_name: string; description: string; qty: number; rate: number; amount: number }[]
   payments: { name: string; posting_date: string; mode_of_payment?: string; reference_no?: string; allocated_amount: number }[]
   mpesa_requests: { name: string; phone: string; amount: number; status: string; result_description?: string }[]
+  emails: EmailRow[]
   mpesa_enabled: boolean
   pay_url: string
   etims_enabled: boolean
@@ -41,6 +44,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
             <StatusBadge status={invoice.status} />
             <ActionsMenu>
               <PrintLink kind="invoice" name={name} />
+              {invoice.docstatus === 1 && me.mail.send.invoice && <EmailButton kind="invoice" name={name} label="Email invoice" />}
               {isDraft && me.can.submit_invoices && (
                 <ActionButton label="Submit invoice" success="Invoice submitted" confirm="Once submitted, this invoice goes into the books and can only be reversed with a credit note." action={submitInvoice.bind(null, name)} />
               )}
@@ -90,13 +94,22 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
             { header: "Paid by", cell: (row) => (row.mode_of_payment === "Wire Transfer" ? "Bank transfer" : row.mode_of_payment) },
             { header: "Reference", cell: (row) => row.reference_no ?? "—" },
             { header: "Amount", align: "right", cell: (row) => formatKes(row.allocated_amount, true) },
-            { header: "Receipt", cell: (row) => <PrintLink kind="receipt" name={row.name} label="Print" /> },
+            {
+              header: "Receipt",
+              cell: (row) => (
+                <div className="flex gap-1.5">
+                  <PrintLink kind="receipt" name={row.name} label="Print" />
+                  {me.mail.send.receipt && <EmailButton kind="receipt" name={row.name} size="sm" />}
+                </div>
+              ),
+            },
           ]}
           rows={data.payments}
           rowKey={(row) => row.name}
           empty="No payments yet"
         />
       </section>
+      {(data.emails.length > 0 || (invoice.docstatus === 1 && me.mail.send.invoice)) && <EmailHistory rows={data.emails} />}
     </div>
   )
 }

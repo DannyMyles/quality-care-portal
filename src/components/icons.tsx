@@ -5,6 +5,10 @@ import {
   Mortarboard01Icon,
   ViewOffSlashIcon,
   UserCircleIcon,
+  Mail01Icon,
+  InboxIcon,
+  Attachment01Icon,
+  MailReply01Icon,
   Certificate01Icon,
   TractorIcon,
   SmartPhone01Icon,
@@ -147,3 +151,7 @@ export const Calendar = make(Calendar03Icon)
 export const Bill = make(Invoice01Icon)
 export const EyeOff = make(ViewOffSlashIcon)
 export const UserCircle = make(UserCircleIcon)
+export const Mail = make(Mail01Icon)
+export const Inbox = make(InboxIcon)
+export const Paperclip = make(Attachment01Icon)
+export const Reply = make(MailReply01Icon)

@@ -1,10 +1,13 @@
 import { DetailList } from "@/components/shared/detail-list"
+import { EmailButton } from "@/components/email/email-button"
+import { EmailHistory } from "@/components/email/email-history"
 import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordLink, RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes } from "@/lib/format"
+import type { EmailRow } from "@/lib/frappe/types"
 
 interface Detail {
   name: string
@@ -16,6 +19,7 @@ interface Detail {
   supplier_details?: string
   balance?: number
   bills: { name: string; posting_date: string; grand_total: number; outstanding_amount: number; status: string }[]
+  emails: EmailRow[]
   trainer_records: { name: string; period: string; class_name?: string; amount_due: number; wht_amount: number; net_amount: number; amount_paid: number }[]
 }
 
@@ -25,7 +29,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ name:
   const data = await api<Detail>("supplier", { params: { name } })
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={data.supplier_name} description={data.supplier_group} actions={<PrintLink statement="supplier" name={name} label="Print statement" />} />
+      <PageHeader title={data.supplier_name} description={data.supplier_group} actions={<div className="flex flex-wrap gap-2"><PrintLink statement="supplier" name={name} label="Print statement" />{me.mail.send.supplier && <EmailButton kind="supplier" name={name} label="Email statement" />}</div>} />
       <DetailList
         rows={[
           { label: "Type", value: data.supplier_type },
@@ -75,6 +79,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ name:
           />
         </div>
       )}
+      {data.emails.length > 0 && <EmailHistory rows={data.emails} />}
     </div>
   )
 }

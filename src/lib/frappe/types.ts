@@ -45,9 +45,39 @@ export interface Can {
   reports: boolean
   import_trainees: boolean
   import_certificates: boolean
+  inbox: boolean
+}
+
+export type EmailKind = "invoice" | "receipt" | "customer" | "supplier" | "certificate"
+
+export interface EmailStatus {
+  /** The address this company sends from, or null when it has no mailbox yet. */
+  from: string | null
+  send: Record<EmailKind, boolean>
+  inbox: boolean
+  unread: number
+}
+
+/** One email on a record's history, or a row in the inbox. */
+export interface EmailRow {
+  name: string
+  subject?: string
+  sender?: string
+  sender_full_name?: string
+  recipients?: string
+  sent_or_received: "Sent" | "Received"
+  communication_date: string
+  delivery_status?: string
+  seen?: number
+  status?: string
+  reference_doctype?: string
+  reference_name?: string
+  has_attachment?: number
+  party?: { doctype: string; name: string; title?: string } | null
 }
 
 export interface Me {
+  mail: EmailStatus
   print: PrintRights
   name: string
   email: string
