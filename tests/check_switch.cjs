@@ -68,8 +68,8 @@ const MARKERS = {
     if (!(await switcher(sole).innerText()).includes(short)) await switchTo(sole, company)
     const items = await menu(sole)
     ok(wanted.every((x) => items.includes(x)) && !unwanted.some((x) => items.includes(x)), `${short}'s menu: ${items.join(", ")}`)
-    const logo = company === QC ? await sole.locator("aside img[alt='Quality Care']").count() : await sole.locator(`aside [aria-label='${HL}']`).count()
-    ok(logo === 1, `${short}'s name heads the sidebar`)
+    const logo = sole.locator(`aside img[alt='${company === QC ? "Quality Care" : HL}']`)
+    ok((await logo.count()) === 1 && (await logo.evaluate((i) => i.complete && i.naturalWidth > 0)), `${short}'s logo heads the sidebar`)
     for (const page of [...COMMON, ...mine]) {
       await go(sole, page)
       const text = await main(sole)
