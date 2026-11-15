@@ -14,3 +14,8 @@ export function navLabel(label: string, company: string) {
 /** "Highlead Solutions" -> "HS", for the collapsed sidebar. */
 export const initials = (name: string) =>
   shortCompany(name).split(/\s+/).map((word) => word[0]).join("").slice(0, 2).toUpperCase()
+
+/** Logos supplied so far. A company without one shows its initials and name instead. */
+export const LOGOS: Record<string, { full: string; mark: string; width: number; height: number }> = {
+  "Highlead Solutions Limited": { full: "/highlead-logo.png", mark: "/highlead-mark.png", width: 1566, height: 386 },
+}

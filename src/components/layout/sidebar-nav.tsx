@@ -10,7 +10,7 @@ import { ChevronDownIcon, ExternalLink } from "@/components/icons"
 import { cn } from "@/lib/utils"
 import { PORTAL_NAV_GROUPS } from "@/lib/nav/portal-nav"
 import type { Can } from "@/lib/frappe/types"
-import { initials, isQualityCare, navLabel, shortCompany } from "@/lib/company"
+import { initials, isQualityCare, LOGOS, navLabel, shortCompany } from "@/lib/company"
 
 export function SidebarNav({
   can,
@@ -29,6 +29,7 @@ export function SidebarNav({
   onToggle: () => void
 }) {
   const pathname = usePathname()
+  const logo = LOGOS[company]
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const groups = PORTAL_NAV_GROUPS.map((group) => ({
     ...group,
@@ -39,10 +40,14 @@ export function SidebarNav({
     <aside className={cn("sticky top-0 z-30 h-screen shrink-0 transition-[width] duration-200 ease-in-out", collapsed ? "w-[76px]" : "w-64")}>
       <div className="flex h-full flex-col overflow-hidden bg-white shadow-[2px_0_24px_rgba(18,19,61,0.05)]">
         <div className={cn("flex shrink-0 items-center", collapsed ? "h-20 justify-center" : "h-24 px-6")}>
-          {collapsed ? (
+          {collapsed && logo ? (
+            <Image src={logo.mark} alt={company} width={256} height={256} className="size-11" priority />
+          ) : collapsed ? (
             <span className="flex size-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#2E3094] to-[#00A3E0] text-sm font-bold text-white">{isQualityCare(company) ? "QC" : initials(company)}</span>
           ) : isQualityCare(company) ? (
             <Image src="/logo-full.png" alt="Quality Care" width={788} height={193} className="h-11 w-auto" priority />
+          ) : logo ? (
+            <Image src={logo.full} alt={company} width={logo.width} height={logo.height} className="h-11 w-auto max-w-full" priority />
           ) : (
             // No logo has been supplied for this company yet, so its name stands in.
             <span className="flex items-center gap-2.5" aria-label={company}>
