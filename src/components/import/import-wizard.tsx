@@ -105,7 +105,7 @@ export function ImportWizard({ kind, batch }: { kind: "trainees" | "certificates
       <section className={panel}>
         <h2 className="text-lg">Check before importing</h2>
         <ul className="mt-3 flex flex-wrap gap-3 text-sm">
-          <li className="rounded-xl bg-[#0AC6A2]/15 px-3 py-2 text-[#056D59]"><strong>{preview.ready}</strong> ready to save</li>
+          <li className="rounded-xl bg-[#0AC6A2]/15 px-3 py-2 text-[#056D59]"><strong>{preview.ready}</strong> ready to {batch ? "save" : "add"}</li>
           {batch && <li className="rounded-xl bg-[#2E3094]/10 px-3 py-2 text-[#2E3094]"><strong>{preview.to_class}</strong> going on the class</li>}
           <li className="rounded-xl bg-[#F1F2FA] px-3 py-2"><strong>{skipped}</strong> {batch ? "skipped" : "already on record"}</li>
           <li className="rounded-xl bg-[#EB2239]/10 px-3 py-2 text-[#87000A]"><strong>{errors}</strong> need fixing</li>
