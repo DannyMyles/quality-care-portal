@@ -48,7 +48,12 @@ export interface Can {
   import_certificates: boolean
   inbox: boolean
   hires: boolean
+  reminders: boolean
+  recurring: boolean
+  edit_recurring: boolean
   edit_hires: boolean
+  delete_hires: boolean
+  deposits: boolean
   feedback: boolean
 }
 
@@ -185,6 +190,8 @@ export interface Batch {
   trainer?: string
   trainee_count?: number
   total_fees?: number
+  /** Average overall feedback rating, out of 5, when students have answered. */
+  rating?: number | null
 }
 
 export interface BatchRow {
@@ -331,6 +338,9 @@ export interface HireRow {
   return_date?: string
   days_late?: number
   sales_invoice?: string
+  deposit_status?: "Held" | "Settled"
+  deposit_amount?: number
+  damage_invoice?: string
   equipment: string[]
   overdue: boolean
 }
@@ -345,6 +355,7 @@ export interface HireItem {
   standard_rate: number
   rate: number
   amount: number
+  charge?: number
 }
 
 export interface Hire extends Omit<HireRow, "equipment"> {
@@ -355,12 +366,22 @@ export interface Hire extends Omit<HireRow, "equipment"> {
   return_notes?: string
   notes?: string
   can_approve: boolean
+  deposit_journal?: string
+  deposit_applied?: number
+  deposit_refunded?: number
+  settlement_journal?: string
+  /** What each item cost, to start a lost item's charge from. */
+  costs: Record<string, number>
+  /** How a held deposit would be used if settled now. */
+  settlement?: { applied: { invoice: string; amount: number }[]; refund: number; drafts: string[]; uninvoiced_damage: boolean }
 }
 
 export interface ClassFeedbackRow {
   name: string
+  trainee: string
   trainee_name?: string
   submitted_on: string
+  source: "By the student" | "From a paper form"
   overall?: number
   instructor?: number
   content?: number
@@ -380,6 +401,11 @@ export interface ClassFeedback {
   average: Record<"overall" | "instructor" | "content" | "venue", number | null>
   recommend: number | null
   rows: ClassFeedbackRow[]
+  can_add: boolean
+  can_edit: boolean
+  can_delete: boolean
+  /** Students on the class who haven't given feedback yet. */
+  waiting: { trainee: string; name: string }[]
 }
 
 export interface FeedbackInfo {
@@ -390,4 +416,46 @@ export interface FeedbackInfo {
   venue?: string | null
   closed?: string | null
   contact: { phones: string; email: string }
+}
+
+export interface ReminderSettings {
+  invoices: number
+  invoice_after_days: number
+  invoice_every_days: number
+  invoice_most: number
+  hires_due: number
+  hire_days_before: number
+  hires_late: number
+  late_every_days: number
+  certificates: number
+  certificate_days_before: number
+  feedback_requests: number
+  email_receipts: number
+  copy_to?: string | null
+}
+
+export interface ClassTrainerRow {
+  name: string
+  supplier: string
+  trainer_name?: string
+  role?: string
+  fee?: number
+  purchase_invoice?: string
+}
+
+export interface RecurringCharge {
+  name: string
+  customer: string
+  item: string
+  description: string
+  cost_center?: string
+  amount: number
+  frequency: "Month" | "Quarter" | "Year"
+  day_of_month: number
+  start_date?: string
+  end_date?: string
+  next_date?: string
+  active: number
+  last_invoice?: string
+  notes?: string
 }

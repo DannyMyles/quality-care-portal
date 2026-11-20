@@ -9,20 +9,22 @@ import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordLink, RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
+import { addClassTrainer, createTrainerBills, removeClassTrainer, updateClassTrainer } from "@/lib/actions"
 import { addBatchTrainee, createBatchInvoices, removeBatchTrainee, requestBatchCertificates, saveBatch, setTraineeCompleted, type FormValues } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes } from "@/lib/format"
-import type { Batch, BatchRow, ClassFeedback } from "@/lib/frappe/types"
+import type { Batch, BatchRow, ClassFeedback, ClassTrainerRow } from "@/lib/frappe/types"
 import { Award, CheckCircle2, ReceiptText, Upload, UsersRound } from "@/components/icons"
 
 interface Detail {
-  batch: Batch & { trainees?: BatchRow[] }
+  batch: Batch & { trainees?: BatchRow[]; instructors?: ClassTrainerRow[] }
   invoices: { name: string; customer: string; grand_total: number; outstanding_amount: number; status: string }[]
   progress: { completed: number; invoiced: number; certified: number; to_invoice: number; to_certify: number }
   feedback: ClassFeedback | null
 }
 
 const STATUSES = ["Planned", "In Progress", "Completed", "Cancelled"]
+const TRAINER_ROLES = ["Lead instructor", "Instructor", "Assistant"].map((value) => ({ value, label: value }))
 
 export default async function BatchPage({ params }: { params: Promise<{ name: string }> }) {
   const name = decodeURIComponent((await params).name)
@@ -31,6 +33,8 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
   if (away) return away
   const { batch, invoices, progress, feedback } = await api<Detail>("batch", { params: { name } })
   const rows = batch.trainees ?? []
+  const instructors = batch.instructors ?? []
+  const unbilled = instructors.filter((row) => !row.purchase_invoice && (row.fee ?? 0) > 0).length
   const edit = me.can.edit_batches
   const setStatus = async (values: FormValues) => {
     "use server"
@@ -70,7 +74,7 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
           <h2 className="text-base">Trainees</h2>
           {edit && (
             <div className="flex flex-wrap gap-2">
-              {progress.to_invoice > 0 && <ActionButton variant="outline" label={`Create invoices (${progress.to_invoice})`} success="Draft invoices created" action={createBatchInvoices.bind(null, name)} />}
+              {progress.to_invoice > 0 && me.can.make_invoices && <ActionButton variant="outline" label={`Create invoices (${progress.to_invoice})`} success="Draft invoices created" action={createBatchInvoices.bind(null, name)} />}
               {progress.to_certify > 0 && <ActionButton variant="outline" label={`Request certificates (${progress.to_certify})`} success="Sent to the Director for approval" action={requestBatchCertificates.bind(null, name)} />}
               {me.can.import_trainees && (
                 <Link prefetch={false} href={`/import?kind=trainees&batch=${encodeURIComponent(name)}`} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E3E5F1] bg-white px-3 text-[13px] font-medium text-[#2E3094] hover:bg-[#F3F4FB]">
@@ -111,6 +115,66 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
           rows={rows}
           rowKey={(row) => row.name}
           empty="No trainees on this class yet"
+        />
+      </section>
+      <section>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base">Trainers and pay</h2>
+            <p className="text-sm text-[#6A6C8C]">Who taught this class and what each is paid. Bills are drafted with the 5% withholding tax taken off.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {me.can.edit_bills && unbilled > 0 && <ActionButton variant="outline" label={`Create trainer bills (${unbilled})`} success="Trainer bills drafted" action={createTrainerBills.bind(null, name)} />}
+            {edit && (
+              <FormDialog
+                title="Add a trainer"
+                triggerLabel="Add trainer"
+                trigger="add"
+                success="Trainer added"
+                fields={[
+                  { name: "supplier", label: "Trainer", type: "lookup", lookup: "trainer", required: true, full: true, hint: "Trainers are set up as suppliers in the Trainers group." },
+                  { name: "role", label: "Role", type: "select", initial: "Instructor", options: TRAINER_ROLES },
+                  { name: "fee", label: "Fee (KES)", type: "number", required: true, hint: "Before the 5% withholding tax." },
+                ]}
+                action={addClassTrainer.bind(null, name)}
+              />
+            )}
+          </div>
+        </div>
+        <RecordTable
+          columns={[
+            { header: "Trainer", cell: (row: ClassTrainerRow) => row.trainer_name ?? row.supplier },
+            { header: "Role", cell: (row: ClassTrainerRow) => row.role ?? "—" },
+            { header: "Fee", align: "right", cell: (row: ClassTrainerRow) => formatKes(row.fee) },
+            { header: "Bill", cell: (row: ClassTrainerRow) => (row.purchase_invoice ? (me.can.bills ? <RecordLink href={`/bills/${encodeURIComponent(row.purchase_invoice)}`}>{row.purchase_invoice}</RecordLink> : row.purchase_invoice) : "Not billed") },
+            ...(edit
+              ? [
+                  {
+                    header: "",
+                    cell: (row: ClassTrainerRow) =>
+                      row.purchase_invoice ? null : (
+                        <span className="flex gap-1">
+                          <FormDialog
+                            title={`${row.trainer_name}'s fee`}
+                            triggerLabel={`Edit ${row.trainer_name}'s fee`}
+                            trigger="edit"
+                            success="Trainer updated"
+                            fields={[
+                              { name: "role", label: "Role", type: "select", initial: row.role ?? "Instructor", options: TRAINER_ROLES },
+                              { name: "fee", label: "Fee (KES)", type: "number", required: true, initial: row.fee ?? "" },
+                            ]}
+                            action={updateClassTrainer.bind(null, name, row.name)}
+                          />
+                          <ActionButton variant="ghost" size="sm" label="Remove" success="Trainer removed" confirm={`Take ${row.trainer_name} off this class?`} action={removeClassTrainer.bind(null, name, row.name)} />
+                        </span>
+                      ),
+                  },
+                ]
+              : []),
+          ]}
+          rows={instructors}
+          rowKey={(row) => row.name}
+          empty="No trainers recorded for this class"
         />
       </section>
       {feedback && <ClassFeedbackSection batch={name} feedback={feedback} canEdit={edit} />}

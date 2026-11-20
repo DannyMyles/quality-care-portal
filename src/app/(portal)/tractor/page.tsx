@@ -50,7 +50,7 @@ export default async function TractorPage({ searchParams }: { searchParams: Prom
       cell: (row) =>
         row.sales_invoice ? (
           me.can.invoices ? <RecordLink href={`/invoices/${encodeURIComponent(row.sales_invoice)}`}>{row.sales_invoice}</RecordLink> : row.sales_invoice
-        ) : me.can.invoices && row.status !== "Booked" ? (
+        ) : me.can.make_invoices && row.status !== "Booked" ? (
           <ActionButton size="sm" variant="outline" label="Create invoice" success="Draft invoice created" action={createTractorInvoice.bind(null, row.name)} />
         ) : (
           "—"

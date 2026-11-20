@@ -282,8 +282,11 @@ export interface HireLine {
 }
 
 export const saveHire = async (data: Record<string, unknown>) => run<string>("save_hire", { data })
-export const returnHire = async (name: string, returnDate: string, conditions: Record<string, string>, notes?: string) =>
-  run<string>("return_hire", { name, return_date: returnDate, conditions: JSON.stringify(conditions), notes: notes || undefined })
+export const returnHire = async (name: string, returnDate: string, conditions: Record<string, string>, notes?: string, charges?: Record<string, number>) =>
+  run<string>("return_hire", { name, return_date: returnDate, conditions: JSON.stringify(conditions), notes: notes || undefined, charges: JSON.stringify(charges ?? {}) })
+export const takeDeposit = async (name: string, values: FormValues) => run<string>("take_hire_deposit", { name, ...clean(values) })
+export const createDamageInvoice = async (name: string) => run<string>("create_damage_invoice", { name })
+export const settleDeposit = async (name: string, values: FormValues) => run<string>("settle_hire_deposit", { name, ...clean(values) })
 export const approveHireRate = async (name: string) => run<string>("approve_hire_rate", { name })
 export const createHireInvoice = async (name: string) => run<string>("create_hire_invoice", { name })
 export const setHireRates = async (item: string, values: FormValues) => run("set_hire_rates", { item, day: values.day || 0, week: values.week || 0 })
@@ -305,4 +308,21 @@ export async function submitFeedback(code: string, answers: Record<string, strin
   } catch {
     return { ok: false, error: "We couldn't send your feedback. Please try again shortly." }
   }
+}
+export const deleteHire = async (name: string) => run<string>("delete_hire", { name })
+export const saveFeedback = async (values: FormValues) => run<string>("save_feedback", { data: values })
+export const deleteFeedback = async (name: string) => run<string>("delete_feedback", { name })
+export const saveReminderSettings = async (data: Record<string, string | number>) => run("save_reminder_settings", { data })
+export const requestFeedback = async (batch: string) => run<{ sent: number; no_email: number; answered: number; already: number }>("request_feedback", { batch })
+export const addClassTrainer = async (batch: string, values: FormValues) => run("add_class_trainer", { batch, ...clean(values) })
+export const updateClassTrainer = async (batch: string, row: string, values: FormValues) => run("update_class_trainer", { batch, row, ...clean(values) })
+export const removeClassTrainer = async (batch: string, row: string) => run("remove_class_trainer", { batch, row })
+export const createTrainerBills = async (batch: string) => run<string[]>("create_trainer_bills", { batch })
+export const saveRecurringCharge = async (values: FormValues) => run<string>("save_recurring_charge", { data: values })
+export const createRecurringInvoices = async (name?: string) => run<string[]>("create_recurring_invoices", name ? { name } : {})
+
+/** A draft supplier bill from an emailed invoice. Returns the bill's name, to open it. */
+export async function billFromEmail(name: string, values: FormValues): Promise<ActionResult<string>> {
+  const result = await run<{ name: string }>("bill_from_email", { name, ...clean(values) })
+  return result.ok ? { ok: true, data: result.data.name } : result
 }

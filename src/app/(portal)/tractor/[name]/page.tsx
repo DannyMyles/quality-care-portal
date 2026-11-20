@@ -28,7 +28,7 @@ export default async function TractorJobPage({ params }: { params: Promise<{ nam
           <>
             <StatusBadge status={job.status} />
             <PrintLink kind="tractor" name={name} />
-            {!job.sales_invoice && job.status !== "Booked" && me.can.invoices && <ActionButton variant="outline" label="Create invoice" success="Draft invoice created" action={createTractorInvoice.bind(null, name)} />}
+            {!job.sales_invoice && job.status !== "Booked" && me.can.make_invoices && <ActionButton variant="outline" label="Create invoice" success="Draft invoice created" action={createTractorInvoice.bind(null, name)} />}
             {!job.sales_invoice && job.status !== "Booked" && me.can.edit_tractor && (
               <FormDialog
                 key={JSON.stringify(job)}

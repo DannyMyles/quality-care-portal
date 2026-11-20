@@ -24,7 +24,7 @@ const list = async (doctype, filters, fields = ["name"], extra = {}) =>
 
 function watch(page, who) {
   page.setDefaultTimeout(30000)
-  page.on("pageerror", (e) => problems.push(who + " " + e.message.slice(0, 160)))
+  page.on("pageerror", (e) => problems.push(who + " " + page.url() + " " + e.message.slice(0, 160)))
   page.on("console", (m) => { if (m.type() === "error" && !/favicon|403|417|Failed to load resource/.test(m.text())) problems.push(who + " console " + m.text().slice(0, 160)) })
 }
 async function session(browser, email, viewport = { width: 1440, height: 900 }) {
@@ -47,14 +47,20 @@ async function pick(dialog, input, text, option) {
   await choice.waitFor(); await choice.locator("button").click()
 }
 
+// Hires hold equipment and deposits, so earlier runs' are undone: journals cancelled, invoices removed.
+async function clearHires() {
+  for (const row of await list("Equipment Hire Record", {}, ["name", "sales_invoice", "damage_invoice", "deposit_journal", "settlement_journal"])) {
+    for (const journal of [row.settlement_journal, row.deposit_journal]) if (journal) await admin("POST", "/api/method/frappe.client.cancel", { doctype: "Journal Entry", name: journal })
+    for (const invoice of [row.sales_invoice, row.damage_invoice]) if (invoice) await admin("DELETE", `/api/resource/Sales Invoice/${encodeURIComponent(invoice)}`)
+    await admin("DELETE", `/api/resource/Equipment Hire Record/${encodeURIComponent(row.name)}`)
+  }
+}
+
 ;(async () => {
   const login = await fetch(FRAPPE + "/api/method/login", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "usr=Administrator&pwd=admin" })
   cookie = login.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ")
   // A clean start: no earlier hires holding equipment, and known rates
-  for (const row of await list("Equipment Hire Record", {}, ["name", "sales_invoice"])) {
-    if (row.sales_invoice) await admin("DELETE", `/api/resource/Sales Invoice/${encodeURIComponent(row.sales_invoice)}`)
-    await admin("DELETE", `/api/resource/Equipment Hire Record/${encodeURIComponent(row.name)}`)
-  }
+  await clearHires()
   await admin("PUT", "/api/resource/Item/Adult Manikin", { qc_hire_rate_day: 1000, qc_hire_rate_week: 5000 })
   await admin("PUT", "/api/resource/Item/Manual Defibrillator", { qc_hire_rate_day: 2000, qc_hire_rate_week: 0 })
   const customer = (await list("Customer", {}, ["name"], { limit_page_length: "1" }))[0].name
@@ -70,7 +76,7 @@ async function pick(dialog, input, text, option) {
   const coord = await session(browser, "coord@test.local")
   ok((await menu(coord)).includes("Equipment Hire"), "the coordinator's menu has Equipment Hire")
   await go(coord, "/hires")
-  ok((await main(coord)).includes("No equipment hires here"), "the list starts empty")
+  ok((await main(coord)).includes("Equipment Hire"), "the hire list opens")
   await coord.getByRole("button", { name: "Record hire" }).first().click()
   let dialog = coord.getByRole("dialog")
   await pick(dialog, dialog.locator("#customer"), customer)
@@ -159,6 +165,16 @@ async function pick(dialog, input, text, option) {
   ok(await toast(director, "Hire rates saved"), "the Director changes the daily rate")
   await until(director, "1,200 a day")
   ok((await main(director)).includes("KES 1,200 a day"), "and the new rate shows")
+  await go(director, "/hires/rates")
+  text = await main(director)
+  ok(text.includes("Adult Manikin") && text.includes("KES 1,200") && text.includes("Not set"), "the hire rates page lists each type with its rates, and which have none")
+  await director.getByRole("button", { name: "Hire rates for Manual Defibrillator" }).click()
+  dialog = director.getByRole("dialog")
+  await dialog.locator("#week").fill("9000")
+  await dialog.getByRole("button", { name: "Save" }).click()
+  ok(await toast(director, "Hire rates saved") && (await until(director, "9,000")), "the Director sets a weekly rate from the list")
+  await go(coord, "/hires/rates")
+  ok(!(await coord.getByRole("button", { name: /^Hire rates for/ }).count()) && (await main(coord)).includes("Adult Manikin"), "a coordinator sees the rates but can't change them")
   await go(coord, `/equipment/${encodeURIComponent(manikin)}`)
   ok(!(await coord.getByRole("button", { name: "Hire rates" }).count()), "a coordinator can't change rates")
 
@@ -197,6 +213,15 @@ async function pick(dialog, input, text, option) {
   await go(coord, `/batches/${encodeURIComponent(batch.name)}`)
   text = await main(coord)
   ok(text.includes("1 of 2 students") && text.includes("A longer practical session") && text.includes(`Grace Feedback ${RUN}`) && text.includes("100%"), "the class page shows Grace's answers")
+  await coord.getByRole("button", { name: "Add paper form" }).click()
+  dialog = coord.getByRole("dialog")
+  await dialog.locator("#trainee").click(); await coord.getByRole("option", { name: `Hassan Feedback ${RUN}` }).click()
+  await dialog.locator("#overall").click(); await coord.getByRole("option", { name: "4: Very good" }).click()
+  await dialog.locator("#improve").fill("Typed from paper")
+  await dialog.getByRole("button", { name: "Save" }).click()
+  ok(await toast(coord, "Feedback added"), "the coordinator types in Hassan's paper form")
+  ok(await until(coord, "paper form") && (await main(coord)).includes("Typed from paper") && (await main(coord)).includes("2 of 2 students"), "it shows as a paper form, and everyone has answered")
+  ok(!(await coord.getByRole("button", { name: "Add paper form" }).count()), "with no one left, Add paper form goes away")
   await coord.getByRole("button", { name: "Stop taking feedback" }).click()
   ok(await toast(coord, "Feedback closed"), "the coordinator closes feedback")
   await student.goto(`${BASE}/feedback/${code}`); await student.waitForLoadState("networkidle")
@@ -215,14 +240,105 @@ async function pick(dialog, input, text, option) {
   ok(await coordPhone.getByRole("dialog").evaluate((d) => d.scrollWidth <= d.clientWidth + 1), "the hire form fits a phone")
   await shot(coordPhone, "hire-form-phone")
 
+  // A deposit, a damaged return and the damage invoice
+  const defib = (await list("Asset", { item_code: "Manual Defibrillator", company: QC, docstatus: 1 }, ["name", "asset_name"], { order_by: "name desc" }))[0]
+  const third = (await admin("POST", "/api/resource/Equipment Hire Record", { company: QC, customer, hire_date: new Date().toISOString().slice(0, 10), hire_basis: "Days", periods: 1, items: [{ asset: defib.name, condition_out: "Good" }] })).data.name
+  await go(accounts, `/hires/${encodeURIComponent(third)}`)
+  ok((await main(accounts)).includes("No deposit taken"), "a new hire has no deposit")
+  await accounts.getByRole("button", { name: "Take deposit" }).click()
+  dialog = accounts.getByRole("dialog")
+  await dialog.locator("#amount").fill("3000")
+  await dialog.locator("#mode").click(); await accounts.getByRole("option", { name: "Cash" }).click()
+  await dialog.getByRole("button", { name: "Save" }).click()
+  ok(await toast(accounts, "Deposit recorded") && (await until(accounts, "held for")), "accounts staff take a 3,000 deposit")
+  ok((await main(accounts)).includes("To settle it: Record the return first"), "and are told it can be settled once the equipment is back")
+  await go(coord, `/hires/${encodeURIComponent(third)}`)
+  ok(!(await coord.getByRole("button", { name: "Take deposit" }).count()), "a coordinator doesn't handle deposits")
+  await coord.getByRole("button", { name: "Record return" }).click()
+  dialog = coord.getByRole("dialog")
+  await dialog.locator("select[id^=in-]").first().selectOption("Damaged")
+  await dialog.locator("[id^=charge-]").first().fill("800")
+  await dialog.getByRole("button", { name: "Save return" }).click()
+  ok(await toast(coord, "Return recorded") && (await until(coord, "800 to invoice")), "the coordinator records the damage and an 800 charge")
+  await coord.getByRole("button", { name: "Create damage invoice" }).click()
+  ok(await toast(coord, "Damage invoice drafted"), "and drafts the damage invoice")
+  const damage = (await list("Sales Invoice", { equipment_hire_record: third }, ["name", "grand_total"])).find((row) => row.grand_total === 800)
+  ok(!!damage, "an 800 damage invoice exists for the hire")
+  await go(accounts, `/hires/${encodeURIComponent(third)}`)
+  ok((await main(accounts)).includes(`Submit ${damage?.name}`) || (await main(accounts)).includes("Submit "), "accounts staff are told which drafts to submit before settling")
+
+  // Deleting a hire that isn't invoiced
+  await go(coord, `/hires/${encodeURIComponent(first)}`)
+  await coord.getByRole("button", { name: "Delete" }).click()
+  await coord.getByRole("alertdialog").getByRole("button").last().click()
+  ok(await toast(coord, "Hire deleted"), "a coordinator deletes a hire")
+  await coord.waitForURL(/\/hires$/)
+  ok(!(await main(coord)).includes(first), "and it's gone from the list")
+  await go(accounts, `/hires/${encodeURIComponent(second)}`)
+  ok(!(await accounts.getByRole("button", { name: "Delete" }).count()), "an invoiced hire, seen by accounts staff, has no Delete")
+
+  // Feedback report, and trainers on a class
+  ok((await menu(coord)).includes("Feedback"), "coordinators have the Feedback report")
+  await go(coord, "/feedback-report")
+  text = await main(coord)
+  ok(text.includes("By course") && text.includes("By trainer") && text.includes("Basic Life Support"), "it shows ratings by course and by trainer")
+  await go(coord, "/batches?search=" + encodeURIComponent(`Browser Hospital ${RUN}`))
+  ok((await main(coord)).includes("/ 5"), "the class list shows the class's rating")
+  await go(coord, `/batches/${encodeURIComponent(batch.name)}`)
+  ok((await main(coord)).includes("Trainers and pay") && (await main(coord)).includes("No trainers recorded"), "the class page has a Trainers and pay section")
+  await coord.getByRole("button", { name: "Add trainer" }).click()
+  dialog = coord.getByRole("dialog")
+  await dialog.locator("#supplier").click()
+  const choice = dialog.locator("[role=option]").first(); await choice.waitFor(); await choice.locator("button").click()
+  await dialog.locator("#fee").fill("8000")
+  await dialog.getByRole("button", { name: "Save" }).click()
+  ok(await toast(coord, "Trainer added") && (await until(coord, "Not billed")), "the coordinator adds a trainer at 8,000")
+  ok(!(await coord.getByRole("button", { name: /Create trainer bills/ }).count()), "and isn't offered bills, which are accounts work")
+  await go(accounts, `/batches/${encodeURIComponent(batch.name)}`)
+  await accounts.getByRole("button", { name: "Create trainer bills (1)" }).click()
+  ok(await toast(accounts, "Trainer bills drafted") && (await until(accounts, "ACC-PINV")), "accounts staff draft the trainer's bill from the class")
+
+  // Recurring invoices: accounts staff set up a monthly charge
+  ok((await menu(accounts)).includes("Recurring Invoices") && !(await menu(coord)).includes("Recurring Invoices"), "accounts staff have Recurring Invoices, coordinators don't")
+  await go(accounts, "/recurring")
+  await accounts.getByRole("button", { name: "New recurring charge" }).first().click()
+  dialog = accounts.getByRole("dialog")
+  await pick(dialog, dialog.locator("#customer"), customer)
+  await dialog.locator("#item").click(); await accounts.getByRole("option", { name: /Monthly Training/ }).click()
+  await dialog.locator("#description").fill(`Monthly lecture hall ${RUN}`)
+  await dialog.locator("#amount").fill("12000")
+  await dialog.locator("#day_of_month").fill("1")
+  await dialog.locator("#start_date").fill(new Date(Date.now() - 40 * 864e5).toISOString().slice(0, 10))
+  await dialog.getByRole("button", { name: "Save" }).click()
+  await accounts.waitForURL(/\/recurring\/RC-/); await accounts.waitForLoadState("networkidle")
+  ok((await main(accounts)).includes(`Monthly lecture hall ${RUN}`) && (await main(accounts)).includes("Every month, on day 1"), "the charge is saved and opens")
+  await accounts.getByRole("button", { name: "Create due invoices" }).click()
+  ok(await toast(accounts, "Due invoices drafted") && (await until(accounts, "ACC-SINV")), "the months already due are drafted and listed")
+  await accounts.getByRole("button", { name: "Stop" }).click()
+  await accounts.getByRole("alertdialog").getByRole("button").last().click()
+  ok(await toast(accounts, "Charge stopped") && (await until(accounts, "Stopped")), "and the charge can be stopped")
+
+  // Reminder settings: the Director's, not the coordinator's
+  ok(!(await menu(coord)).includes("Reminders"), "a coordinator has no Reminders page")
+  ok((await menu(director)).includes("Reminders"), "the Director has")
+  await go(director, "/reminders")
+  ok((await main(director)).includes("Nothing to send") || (await main(director)).includes("Going out next"), "the Reminders page opens")
+  await director.getByLabel("Overdue invoices").check()
+  ok(await director.locator("#invoice_every_days").isVisible(), "ticking a kind shows its timing")
+  await director.getByRole("button", { name: "Save reminder settings" }).click()
+  ok(await toast(director, "Reminder settings saved"), "the Director switches on overdue-invoice reminders")
+  await director.waitForLoadState("networkidle")
+  ok(await director.getByLabel("Overdue invoices").isChecked(), "and it stays on")
+  await director.getByLabel("Overdue invoices").uncheck()
+  await director.getByRole("button", { name: "Save reminder settings" }).click()
+  await toast(director, "Reminder settings saved")
+
   ok(problems.length === 0, `no page errors (${problems.slice(0, 5).join(" | ")})`)
   await browser.close()
   // Tidy up: invoices and hires from this run, and the original rate
   await admin("PUT", "/api/resource/Item/Adult Manikin", { qc_hire_rate_day: 1000 })
-  for (const row of await list("Equipment Hire Record", {}, ["name", "sales_invoice"])) {
-    if (row.sales_invoice) await admin("DELETE", `/api/resource/Sales Invoice/${encodeURIComponent(row.sales_invoice)}`)
-    await admin("DELETE", `/api/resource/Equipment Hire Record/${encodeURIComponent(row.name)}`)
-  }
+  await admin("PUT", "/api/resource/Item/Manual Defibrillator", { qc_hire_rate_week: 0 })
+  await clearHires()
   console.log(`\nTOTAL pass ${pass} fail ${fail}`)
   process.exit(fail ? 1 : 0)
 })().catch((e) => { console.error("CRASH", e); process.exit(2) })

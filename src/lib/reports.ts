@@ -7,10 +7,13 @@ export interface PortalReport {
   noDates?: boolean
   /** Statements read from top to bottom line, so they aren't split into pages. */
   whole?: boolean
+  /** Extra choices the report narrows by, offered from what the report returns. */
+  filters?: { param: string; placeholder: string }[]
 }
 
 export const REPORTS: PortalReport[] = [
   { slug: "business-line-profit", group: "Money", title: "Profit by business line", description: "Income, costs and profit for each line" },
+  { slug: "profit-shares", group: "Money", title: "Owners' shares of profit", description: "Each shared business's profit, and each owner's share, such as DES and Smith's halves of the Proboxes", filters: [{ param: "business", placeholder: "All businesses" }, { param: "owner", placeholder: "All owners" }] },
   { slug: "income-expenses-by-month", group: "Money", title: "Income and expenses by month", description: "How each month went" },
   { slug: "sales-by-customer", group: "Money", title: "Sales by customer", description: "Who you bill most, and what they've paid" },
   { slug: "receivables-ageing", group: "Money", title: "Who owes what, and how late", description: "Unpaid balances by days past due", noDates: true },
