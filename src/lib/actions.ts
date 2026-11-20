@@ -173,18 +173,27 @@ export interface ImportPreview {
   total: number
   ready: number
   problems: { row: number; name: string; type: "error" | "duplicate"; message: string }[]
+  /** Rows that will be saved, with something worth knowing about them. */
+  notes: { row: number; name: string; message: string }[]
+  /** How many go onto the class, when importing into one. */
+  to_class: number
+  batch: string | null
 }
 
 export interface ImportResult {
   created: number
   failed: { row: number; name: string; message: string }[]
+  added?: number
+  batch?: string | null
 }
 
 export async function previewImport(form: FormData): Promise<ActionResult<ImportPreview>> {
   const file = form.get("file")
   if (!(file instanceof File) || !file.size) return { ok: false, error: "Choose a file first." }
   const content = Buffer.from(await file.arrayBuffer()).toString("base64")
-  return run<ImportPreview>("import_preview", { kind: form.get("kind"), filename: file.name, content })
+  const batch = form.get("batch") || undefined
+  const customer = form.get("customer") || undefined
+  return run<ImportPreview>("import_preview", { kind: form.get("kind"), filename: file.name, content, batch, customer })
 }
 
 export const commitImport = async (kind: string, token: string) => run<ImportResult>("import_commit", { kind, token })
@@ -263,4 +272,37 @@ const FILE_UNDER: Record<string, string> = { Customer: "customer", Supplier: "su
 export async function fileEmail(name: string, values: FormValues) {
   const doctype = String(values.doctype ?? "")
   return run("file_email", { name, doctype, docname: values[FILE_UNDER[doctype]] })
+}
+
+// Equipment hire
+export interface HireLine {
+  asset: string
+  condition_out: string
+  rate?: number
+}
+
+export const saveHire = async (data: Record<string, unknown>) => run<string>("save_hire", { data })
+export const returnHire = async (name: string, returnDate: string, conditions: Record<string, string>, notes?: string) =>
+  run<string>("return_hire", { name, return_date: returnDate, conditions: JSON.stringify(conditions), notes: notes || undefined })
+export const approveHireRate = async (name: string) => run<string>("approve_hire_rate", { name })
+export const createHireInvoice = async (name: string) => run<string>("create_hire_invoice", { name })
+export const setHireRates = async (item: string, values: FormValues) => run("set_hire_rates", { item, day: values.day || 0, week: values.week || 0 })
+export const updateHireNotes = async (name: string, values: FormValues) => run<string>("save_hire", { data: { name, notes: values.notes ?? "" } })
+
+export async function hireEquipment(search: string) {
+  return api<{ name: string; label: string; item_code: string; day: number; week: number }[]>("lookup", { params: { kind: "hire_equipment", search } }).catch(() => [])
+}
+
+// Class feedback
+export const setFeedbackOpen = async (batch: string, open: boolean) => run("set_feedback_open", { batch, open: open ? 1 : 0 })
+
+export async function submitFeedback(code: string, answers: Record<string, string | number | null>): Promise<ActionResult> {
+  try {
+    const { response, json } = await guestCall("submit_feedback", { code, ...answers })
+    if (response.status === 429) return { ok: false, error: "Too many attempts from this connection. Please try again later." }
+    if (!response.ok) return { ok: false, error: errorMessage(json, response.status) }
+    return { ok: true, data: null }
+  } catch {
+    return { ok: false, error: "We couldn't send your feedback. Please try again shortly." }
+  }
 }

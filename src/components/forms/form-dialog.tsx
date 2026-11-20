@@ -34,7 +34,7 @@ export interface FormField {
   full?: boolean
 }
 
-function LookupInput({
+export function LookupInput({
   field,
   value,
   onChange,

@@ -29,6 +29,7 @@ export interface Can {
   edit_suppliers: boolean
   add_equipment: boolean
   invoices: boolean
+  make_invoices: boolean
   submit_invoices: boolean
   payments: boolean
   bills: boolean
@@ -46,6 +47,9 @@ export interface Can {
   import_trainees: boolean
   import_certificates: boolean
   inbox: boolean
+  hires: boolean
+  edit_hires: boolean
+  feedback: boolean
 }
 
 export type EmailKind = "invoice" | "receipt" | "customer" | "supplier" | "certificate"
@@ -312,3 +316,78 @@ export type PayInfo =
       paybill: { type: string; number: string; account: string } | null
       contact: { phones: string; email: string }
     }
+
+export interface HireRow {
+  name: string
+  hire_date: string
+  customer: string
+  hire_basis: "Days" | "Weeks"
+  periods: number
+  due_back: string
+  status: "Out" | "Returned"
+  total_amount: number
+  negotiated?: number
+  rate_approved_by?: string
+  return_date?: string
+  days_late?: number
+  sales_invoice?: string
+  equipment: string[]
+  overdue: boolean
+}
+
+export interface HireItem {
+  name: string
+  asset: string
+  asset_name: string
+  item_code?: string
+  condition_out: string
+  condition_in?: string
+  standard_rate: number
+  rate: number
+  amount: number
+}
+
+export interface Hire extends Omit<HireRow, "equipment"> {
+  company: string
+  items: HireItem[]
+  negotiation_reason?: string
+  rate_approved_on?: string
+  return_notes?: string
+  notes?: string
+  can_approve: boolean
+}
+
+export interface ClassFeedbackRow {
+  name: string
+  trainee_name?: string
+  submitted_on: string
+  overall?: number
+  instructor?: number
+  content?: number
+  venue?: number
+  recommend?: string
+  liked?: string
+  improve?: string
+}
+
+export interface ClassFeedback {
+  url: string
+  qr: string
+  open: boolean
+  closed: string | null
+  count: number
+  students: number
+  average: Record<"overall" | "instructor" | "content" | "venue", number | null>
+  recommend: number | null
+  rows: ClassFeedbackRow[]
+}
+
+export interface FeedbackInfo {
+  found: boolean
+  course?: string
+  start_date?: string
+  end_date?: string | null
+  venue?: string | null
+  closed?: string | null
+  contact: { phones: string; email: string }
+}
