@@ -67,6 +67,8 @@ import {
   UserGroupIcon,
   UserMultiple02Icon,
   Wallet01Icon,
+  PackageMovingIcon,
+  MessageMultiple01Icon,
 } from "@hugeicons/core-free-icons"
 
 export type AppIcon = ComponentType<{ className?: string }>
@@ -145,6 +147,8 @@ export const Award = make(Certificate01Icon)
 export const Tractor = make(TractorIcon)
 export const Phone = make(SmartPhone01Icon)
 export const Wrench = make(Wrench01Icon)
+export const PackageMoving = make(PackageMovingIcon)
+export const Messages = make(MessageMultiple01Icon)
 export const ExternalLink = make(LinkSquare02Icon)
 export const Teacher = make(TeacherIcon)
 export const Calendar = make(Calendar03Icon)

@@ -12,7 +12,7 @@ import { API_BASE, siteHeaders } from "@/lib/frappe/config"
 
 const REFRESH_MARGIN_MS = 2 * 60 * 1000
 const SHARE_REFRESH_MS = 30 * 1000
-const PUBLIC_PATHS = ["/login", "/session/end", "/forgot-password", "/reset-password", "/verify/", "/pay/"]
+const PUBLIC_PATHS = ["/login", "/session/end", "/forgot-password", "/reset-password", "/verify/", "/pay/", "/feedback/"]
 
 /**
  * A refresh token works once, and one page load can send several requests at the same moment,
@@ -54,7 +54,7 @@ export async function proxy(request: NextRequest) {
     if (pathname !== "/") login.searchParams.set("next", pathname + search)
     return NextResponse.redirect(login)
   }
-  if (pathname.startsWith("/session/end") || pathname.startsWith("/reset-password") || pathname.startsWith("/forgot-password") || pathname.startsWith("/verify/") || pathname.startsWith("/pay/")) return NextResponse.next()
+  if (pathname.startsWith("/session/end") || pathname.startsWith("/reset-password") || pathname.startsWith("/forgot-password") || pathname.startsWith("/verify/") || pathname.startsWith("/pay/") || pathname.startsWith("/feedback/")) return NextResponse.next()
   if (pathname.startsWith("/login")) return NextResponse.redirect(new URL("/dashboard", request.url))
 
   if (session.expiresAt - Date.now() >= REFRESH_MARGIN_MS) return NextResponse.next()

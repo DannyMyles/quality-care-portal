@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers"
 import { notFound, redirect } from "next/navigation"
 import { openSession, SESSION_COOKIE } from "@/lib/auth/session"
 import { API_BASE, siteHeaders } from "@/lib/frappe/config"
-import type { Me, PayInfo, VerifyResult } from "@/lib/frappe/types"
+import type { FeedbackInfo, Me, PayInfo, VerifyResult } from "@/lib/frappe/types"
 
 export class FrappeError extends Error {
   constructor(
@@ -114,6 +114,16 @@ export async function verifyCertificate(code: string): Promise<VerifyResult> {
   const response = await fetch(url, { cache: "no-store", headers: { ...siteHeaders, ...(forwarded ? { "X-Forwarded-For": forwarded } : {}) } })
   if (!response.ok) throw new FrappeError("The certificate check isn't available right now.", response.status)
   return ((await response.json()) as { message: VerifyResult }).message
+}
+
+/** The public class feedback page. The random code in the link is the only way in. */
+export async function getFeedbackInfo(code: string): Promise<FeedbackInfo> {
+  const url = new URL(`${API_BASE}.feedback_info`)
+  url.searchParams.set("code", code)
+  const forwarded = (await headers()).get("x-forwarded-for")
+  const response = await fetch(url, { cache: "no-store", headers: { ...siteHeaders, ...(forwarded ? { "X-Forwarded-For": forwarded } : {}) } })
+  if (!response.ok) throw new FrappeError("This page isn't available right now.", response.status)
+  return ((await response.json()) as { message: FeedbackInfo }).message
 }
 
 /** The public Pay Now page. The random code in the link is the only way in. */

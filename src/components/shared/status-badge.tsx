@@ -12,6 +12,7 @@ const STYLES: Record<string, string> = {
   Requested: WARN, "Never signed in": WARN, Draft: WARN, "To Invoice": WARN, Unpaid: WARN, "Partly Paid": WARN, Sent: WARN, Received: WARN, Submitted: INFO,
   Overdue: BAD, Reversed: BAD, Rejected: BAD, Unmatched: BAD, Failed: BAD, Revoked: BAD, "Not signed": BAD,
   Replied: GOOD, Opened: GOOD, Sending: WARN, "Partly sent": WARN, "Not sent": BAD, Open: INFO, Linked: INFO, Closed: MUTED,
+  Out: INFO, Returned: GOOD, "Needs approval": WARN, Late: BAD, "Due back": INFO,
   Planned: INFO, "In Progress": INFO, Return: MUTED, "Credit Note Issued": MUTED, Cancelled: MUTED,
 }
 

@@ -1,4 +1,6 @@
+import Link from "next/link"
 import { ActionButton } from "@/components/forms/action-button"
+import { ClassFeedbackSection } from "@/components/feedback/class-feedback"
 import { otherCompany } from "@/components/shared/other-company"
 import { CompletedToggle } from "@/components/forms/completed-toggle"
 import { FormDialog } from "@/components/forms/form-dialog"
@@ -10,13 +12,14 @@ import { StatusBadge } from "@/components/shared/status-badge"
 import { addBatchTrainee, createBatchInvoices, removeBatchTrainee, requestBatchCertificates, saveBatch, setTraineeCompleted, type FormValues } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes } from "@/lib/format"
-import type { Batch, BatchRow } from "@/lib/frappe/types"
-import { Award, CheckCircle2, ReceiptText, UsersRound } from "@/components/icons"
+import type { Batch, BatchRow, ClassFeedback } from "@/lib/frappe/types"
+import { Award, CheckCircle2, ReceiptText, Upload, UsersRound } from "@/components/icons"
 
 interface Detail {
   batch: Batch & { trainees?: BatchRow[] }
   invoices: { name: string; customer: string; grand_total: number; outstanding_amount: number; status: string }[]
   progress: { completed: number; invoiced: number; certified: number; to_invoice: number; to_certify: number }
+  feedback: ClassFeedback | null
 }
 
 const STATUSES = ["Planned", "In Progress", "Completed", "Cancelled"]
@@ -26,7 +29,7 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
   const me = await getMe()
   const away = otherCompany(me, "training", "Classes")
   if (away) return away
-  const { batch, invoices, progress } = await api<Detail>("batch", { params: { name } })
+  const { batch, invoices, progress, feedback } = await api<Detail>("batch", { params: { name } })
   const rows = batch.trainees ?? []
   const edit = me.can.edit_batches
   const setStatus = async (values: FormValues) => {
@@ -69,6 +72,12 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
             <div className="flex flex-wrap gap-2">
               {progress.to_invoice > 0 && <ActionButton variant="outline" label={`Create invoices (${progress.to_invoice})`} success="Draft invoices created" action={createBatchInvoices.bind(null, name)} />}
               {progress.to_certify > 0 && <ActionButton variant="outline" label={`Request certificates (${progress.to_certify})`} success="Sent to the Director for approval" action={requestBatchCertificates.bind(null, name)} />}
+              {me.can.import_trainees && (
+                <Link prefetch={false} href={`/import?kind=trainees&batch=${encodeURIComponent(name)}`} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[#E3E5F1] bg-white px-3 text-[13px] font-medium text-[#2E3094] hover:bg-[#F3F4FB]">
+                  <Upload className="size-4" />
+                  Import list
+                </Link>
+              )}
               <FormDialog
                 title="Add a trainee"
                 triggerLabel="Add trainee" trigger="add"
@@ -104,6 +113,7 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
           empty="No trainees on this class yet"
         />
       </section>
+      {feedback && <ClassFeedbackSection batch={name} feedback={feedback} canEdit={edit} />}
       {invoices.length > 0 && (
         <section>
           <h2 className="mb-1 text-base">Invoices</h2>
