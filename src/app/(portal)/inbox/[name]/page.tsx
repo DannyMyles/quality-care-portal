@@ -5,7 +5,7 @@ import { MessageFrame } from "@/components/email/message-frame"
 import { ArrowLeft, Download, Paperclip, Reply } from "@/components/icons"
 import { PageHeader } from "@/components/shared/page-header"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { closeEmail, fileEmail, replyEmail, unfileEmail } from "@/lib/actions"
+import { billFromEmail, closeEmail, fileEmail, replyEmail, unfileEmail } from "@/lib/actions"
 import { isQualityCare } from "@/lib/company"
 import { deliveryLabel, displayName, recordLabel, recordPath } from "@/lib/email"
 import { api, getMe } from "@/lib/frappe/client"
@@ -30,6 +30,28 @@ interface Message {
   thread: { name: string; subject?: string; sender?: string; sender_full_name?: string; sent_or_received: string; communication_date: string }[]
   can_reply: boolean
   can_file: boolean
+  can_bill: boolean
+}
+
+interface BillOptions {
+  expense_accounts: { name: string; account_name: string }[]
+  cost_centres: string[]
+  suppliers: { name: string; supplier_name: string; tax_withholding_category?: string }[]
+}
+
+/** The new-bill form, started from what the email says: who sent it and what about. */
+function billFields(options: BillOptions, data: Message): FormField[] {
+  const withholding = options.suppliers.filter((supplier) => supplier.tax_withholding_category).map((supplier) => supplier.name)
+  const supplier = data.party?.doctype === "Supplier" ? data.party.name : ""
+  return [
+    { name: "supplier", label: "Supplier", type: "select", required: true, full: true, initial: supplier, options: options.suppliers.map((row) => ({ value: row.name, label: row.supplier_name })), hint: supplier ? "Matched from the sender's email address." : "The sender's address isn't on a supplier, so choose one." },
+    { name: "description", label: "What is this for?", required: true, full: true, initial: data.subject ?? "" },
+    { name: "amount", label: "Amount (KES)", type: "number", required: true, hint: "From the attached invoice." },
+    { name: "date", label: "Bill date", type: "date", required: true, initial: new Date().toISOString().slice(0, 10) },
+    { name: "cost_center", label: "Business line", type: "select", required: true, options: options.cost_centres.map((value) => ({ value, label: value.replace(/ - [A-Z]+$/, "") })) },
+    { name: "expense_account", label: "Type of cost", type: "select", required: true, hideWhen: { field: "supplier", values: withholding }, options: options.expense_accounts.map((account) => ({ value: account.name, label: account.account_name })) },
+    { name: "bill_no", label: "Supplier's bill number" },
+  ]
 }
 
 function when(value: string) {
@@ -69,6 +91,7 @@ export default async function EmailPage({ params }: { params: Promise<{ name: st
   const name = decodeURIComponent((await params).name)
   const me = await getMe()
   const data = await api<Message>("email_message", { params: { name } })
+  const billOptions = data.can_bill ? await api<BillOptions>("bill_options").catch(() => null) : null
   const received = data.sent_or_received === "Received"
   const filedAt = recordPath(data.reference_doctype, data.reference_name)
   const closed = data.status === "Closed"
@@ -111,6 +134,20 @@ export default async function EmailPage({ params }: { params: Promise<{ name: st
                 variant="outline"
                 fields={fileFields(isQualityCare(me.company), data.party)}
                 action={fileEmail.bind(null, name)}
+              />
+            )}
+            {billOptions && (
+              <FormDialog
+                title="Make a draft bill"
+                description={`The email${data.attachments.length ? ` and its ${data.attachments.length} attachment${data.attachments.length === 1 ? "" : "s"}` : ""} go on the bill, so it's easy to check before submitting.`}
+                triggerLabel="Make a draft bill"
+                submitLabel="Save draft bill"
+                success="Draft bill saved"
+                showPlus={false}
+                variant="outline"
+                fields={billFields(billOptions, data)}
+                action={billFromEmail.bind(null, name)}
+                goTo="/bills/{result}"
               />
             )}
             {data.can_file && data.reference_name && <ActionButton variant="outline" label="Unfile" success="No longer filed" action={unfileEmail.bind(null, name)} />}

@@ -33,6 +33,7 @@ const columns: Column<Batch>[] = [
   { header: "CPD", align: "right", cell: (row) => row.cpd_points ?? "—" },
   { header: "Status", cell: (row) => <StatusBadge status={row.status} /> },
   { header: "Trainees", align: "right", cell: (row) => row.trainee_count ?? 0 },
+  { header: "Rating", align: "right", wide: true, cell: (row) => (row.rating ? <span className={row.rating < 3 ? "font-semibold text-[#B5152A]" : undefined} title={row.rating < 3 ? "Low feedback: worth a look" : undefined}>{row.rating} / 5</span> : "—") },
   { header: "Fees", align: "right", cell: (row) => formatKes(row.total_fees) },
 ]
 

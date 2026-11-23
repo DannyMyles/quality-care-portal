@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { PackageMoving } from "@/components/icons"
 import { HireForm } from "@/components/hire/hire-form"
 import { otherCompany } from "@/components/shared/other-company"
@@ -21,7 +22,7 @@ export default async function HiresPage({ searchParams }: { searchParams: Promis
   const away = otherCompany(me, "training", "Equipment hires")
   if (away) return away
   const period = readPeriod(params)
-  const data = await api<Page<HireRow> & { customers: string[]; years: string[] }>("hires", { params: { status: params.status, search: params.search, customer: params.customer, from_date: period?.from, to_date: period?.to, start, limit } })
+  const data = await api<Page<HireRow> & { customers: string[]; years: string[]; equipment_types: string[] }>("hires", { params: { status: params.status, search: params.search, customer: params.customer, equipment: params.equipment, from_date: period?.from, to_date: period?.to, start, limit } })
   const columns: Column<HireRow>[] = [
     { header: "Hire", cell: (row) => <RecordLink href={`/hires/${encodeURIComponent(row.name)}`} sub={row.name}>{row.customer}</RecordLink> },
     { header: "Equipment", cell: (row) => (row.equipment.length > 2 ? `${row.equipment.slice(0, 2).join(", ")} and ${row.equipment.length - 2} more` : row.equipment.join(", ")), wide: true },
@@ -42,15 +43,21 @@ export default async function HiresPage({ searchParams }: { searchParams: Promis
         <span className="flex flex-wrap gap-1">
           <StatusBadge status={row.overdue ? "Overdue" : row.status} />
           {row.negotiated && !row.rate_approved_by && !row.sales_invoice ? <StatusBadge status="Needs approval" /> : null}
+          {row.deposit_status === "Held" ? <StatusBadge status="Deposit held" /> : null}
         </span>
       ),
     },
     { header: "Invoice", cell: (row) => (row.sales_invoice ? (me.can.invoices ? <RecordLink href={`/invoices/${encodeURIComponent(row.sales_invoice)}`}>{row.sales_invoice}</RecordLink> : row.sales_invoice) : "—"), wide: true },
   ]
   const add = me.can.edit_hires ? <HireForm /> : null
+  const rates = (
+    <Link prefetch={false} href="/hires/rates" className="inline-flex h-9 items-center rounded-lg border border-[#E3E5F1] bg-white px-3 text-[13px] font-medium text-[#2E3094] hover:bg-[#F3F4FB]">
+      Hire rates
+    </Link>
+  )
   return (
     <div className="flex flex-col gap-2">
-      <PageHeader title="Equipment Hire" description="What's out, with whom, until when, and what it's charged." actions={add} />
+      <PageHeader title="Equipment Hire" description="What's out, with whom, until when, and what it's charged." actions={<>{me.can.items && rates}{add}</>} />
       <StatusTabs
         path="/hires"
         current={params.status}
@@ -61,11 +68,13 @@ export default async function HiresPage({ searchParams }: { searchParams: Promis
           { value: "Returned", label: "Returned" },
           { value: "To Invoice", label: "To invoice" },
           { value: "Needs approval", label: "Needs approval" },
+          { value: "Deposit held", label: "Deposit held" },
         ]}
       />
       <FilterBar>
         <SearchFilter placeholder="Search by customer or hire number" />
         <SelectFilter param="customer" placeholder="All customers" options={choices(data.customers)} />
+        <SelectFilter param="equipment" placeholder="All equipment" options={choices(data.equipment_types ?? [])} />
         <PeriodFilter years={data.years} defaultLabel="Any date" />
       </FilterBar>
       <RecordTable columns={columns} rows={data.rows} rowKey={(row) => row.name} empty="No equipment hires here" emptyIcon={PackageMoving} emptyAction={params.status || params.search ? undefined : add} total={data.total} page={page} path="/hires" params={params} />

@@ -3,7 +3,7 @@ import { DownloadCsv } from "@/components/forms/download-csv"
 import { DeskLink } from "@/components/shared/desk-link"
 import { ActionsMenu } from "@/components/shared/actions-menu"
 import { PrintLink } from "@/components/shared/print-link"
-import { FilterBar, PeriodFilter } from "@/components/shared/filters"
+import { FilterBar, PeriodFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { api, getMe } from "@/lib/frappe/client"
@@ -28,7 +28,8 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
   const chosen = readPeriod(search)
   const me = await getMe()
   const { page, start, limit } = pageOf(search)
-  const data = await api<ReportResult>("report", { params: { slug, from_date: chosen?.from, to_date: chosen?.to } })
+  const extra = Object.fromEntries((report.filters ?? []).map((filter) => [filter.param, search[filter.param]]).filter(([, value]) => value))
+  const data = await api<ReportResult & { choices?: Record<string, { value: string; label: string }[]> }>("report", { params: { slug, from_date: chosen?.from, to_date: chosen?.to, filters: Object.keys(extra).length ? JSON.stringify(extra) : undefined } })
   const csv = [data.columns.map((column) => column.label), ...data.rows.map((row) => data.columns.map((column) => String(row[column.fieldname] ?? "")))]
   return (
     <div>
@@ -36,6 +37,9 @@ export default async function ReportPage({ params, searchParams }: { params: Pro
       {!report.noDates && (
         <FilterBar>
           <PeriodFilter years={data.years} defaultLabel="All dates" />
+          {(report.filters ?? []).map((filter) => (
+            <SelectFilter key={filter.param} param={filter.param} placeholder={filter.placeholder} options={data.choices?.[filter.param] ?? []} />
+          ))}
           <span className="text-sm text-muted-foreground">{describeRange(data.from_date, data.to_date)}</span>
         </FilterBar>
       )}

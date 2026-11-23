@@ -1,5 +1,5 @@
 import type { AppIcon } from "@/components/icons"
-import { Award, BarChart3, Inbox, Bill, Building2, GraduationCap, Landmark, LayoutDashboard, Phone, ReceiptText, Teacher, Tractor, Upload, Users, UsersRound, Wrench, Calendar, PackageMoving } from "@/components/icons"
+import { Award, BarChart3, Inbox, Bill, Building2, GraduationCap, Landmark, LayoutDashboard, Phone, ReceiptText, Teacher, Tractor, Upload, Users, UsersRound, Wrench, Calendar, PackageMoving, Bell, Messages, RefreshCw } from "@/components/icons"
 import type { Can } from "@/lib/frappe/types"
 
 export interface PortalNavItem {
@@ -38,6 +38,7 @@ export const PORTAL_NAV_GROUPS: { label: string; items: PortalNavItem[] }[] = [
       { label: "Trainees", href: "/trainees", icon: UsersRound, can: "trainees" },
       { label: "Classes", href: "/batches", icon: Calendar, can: "batches" },
       { label: "Certificates", href: "/certificates", icon: Award, can: "certificates" },
+      { label: "Feedback", href: "/feedback-report", icon: Messages, can: "feedback" },
     ],
   },
   {
@@ -51,6 +52,7 @@ export const PORTAL_NAV_GROUPS: { label: string; items: PortalNavItem[] }[] = [
     label: "Money",
     items: [
       { label: "Invoices", href: "/invoices", icon: ReceiptText, can: "invoices" },
+      { label: "Recurring Invoices", href: "/recurring", icon: RefreshCw, can: "recurring" },
       { label: "Customers", href: "/customers", icon: Users, can: "customers" },
       { label: "M-Pesa", href: "/payments", icon: Phone, can: "mpesa" },
       { label: "Supplier Bills", href: "/bills", icon: Bill, can: "bills" },
@@ -71,6 +73,7 @@ export const PORTAL_NAV_GROUPS: { label: string; items: PortalNavItem[] }[] = [
       { label: "Trainers & WHT", href: "/trainers", icon: Teacher, can: "trainers" },
       { label: "Equipment", href: "/equipment", icon: Wrench, can: "equipment" },
       { label: "Reports", href: "/reports", icon: BarChart3, can: "reports" },
+      { label: "Reminders", href: "/reminders", icon: Bell, can: "reminders" },
       { label: "Import from Excel", href: "/import", icon: Upload, can: "import_trainees" },
       { label: "Team", href: "/team", icon: Users, can: "team" },
     ],
