@@ -49,6 +49,9 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge status={invoice.status} />
+            {owing && data.mpesa_enabled && me.can.mpesa && (
+              <FormDialog title="Send an M-Pesa prompt" description={`The customer gets a prompt on their phone to pay the ${formatKes(invoice.outstanding_amount, true)} balance, and enters their M-Pesa PIN to pay.`} triggerLabel="Request M-Pesa" submitLabel="Send prompt" success="Prompt sent to their phone" showPlus={false} fields={[{ name: "phone", label: "Customer's phone", type: "tel", required: true, full: true, placeholder: "0712 345 678" }]} action={requestMpesa.bind(null, name)} />
+            )}
             {options && <InvoiceForm items={options.items} invoice={{ name, customer: invoice.customer, posting_date: invoice.posting_date, due_date: data.draft.due_date, remarks: data.draft.remarks, lines: data.lines }} />}
             <ActionsMenu>
               <PrintLink kind="invoice" name={name} />
@@ -60,9 +63,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
                 <FormDialog title="Record a payment" description={`${formatKes(invoice.outstanding_amount, true)} is still unpaid.`} triggerLabel="Record payment" submitLabel="Record payment" success="Payment recorded" showPlus={false} fields={paymentFields(invoice.outstanding_amount)} action={recordPayment.bind(null, name)} />
               )}
               {data.pay_url && <CopyPayLink url={data.pay_url} />}
-              {owing && data.mpesa_enabled && me.can.mpesa && (
-                <FormDialog title="Send an M-Pesa request" description="The customer gets a prompt on their phone for the unpaid balance." triggerLabel="Request M-Pesa" submitLabel="Send request" success="Request sent to their phone" showPlus={false} variant="outline" fields={[{ name: "phone", label: "Phone", type: "tel", required: true, full: true, placeholder: "0712 345 678" }]} action={requestMpesa.bind(null, name)} />
-              )}
+              {isDraft && data.mpesa_enabled && me.can.mpesa && <p className="max-w-56 px-1 py-1 text-xs text-[#6A6C8C]">Submit the invoice first. Then you can send the customer an M-Pesa prompt.</p>}
               {unsigned && me.can.submit_invoices && <ActionButton variant="outline" label="Retry eTIMS" success="Sent to eTIMS again" action={retryEtims.bind(null, name)} />}
               {isDraft && me.delete.invoice && <DeleteButton kind="invoice" name={name} what={`draft ${name}`} goTo="/invoices" />}
               {invoice.docstatus === 1 && me.cancel.invoice && (
