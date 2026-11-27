@@ -6,6 +6,7 @@ import { toast } from "sonner"
 import { Pencil, Plus, Trash } from "@/components/icons"
 import { LookupInput } from "@/components/forms/form-dialog"
 import { LoadingButton } from "@/components/shared/loading-button"
+import { HoverLabel } from "@/components/forms/hover-label"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -165,9 +166,8 @@ export function HireForm({ hire }: { hire?: Hire }) {
           <Pencil className="size-4 text-[#2E3094]" />
         </DialogTrigger>
       ) : (
-        <DialogTrigger render={<Button />}>
-          <Plus className="size-4" />
-          Record hire
+        <DialogTrigger render={<Button aria-label="Record hire" title="Record hire" className="gap-0 px-3" />}>
+          <HoverLabel icon={Plus} label="Record hire" />
         </DialogTrigger>
       )}
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">

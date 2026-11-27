@@ -50,6 +50,8 @@ export interface Can {
   hires: boolean
   reminders: boolean
   recurring: boolean
+  add_items: boolean
+  edit_invoices: boolean
   edit_recurring: boolean
   edit_hires: boolean
   delete_hires: boolean
@@ -98,6 +100,12 @@ export interface Me {
   logo?: string
   desk: boolean
   can: Can
+  /** What this person may delete, by kind: invoice, bill, customer, supplier, trainee, class, tractor, recurring, item. */
+  delete: Record<string, boolean>
+  /** What this person may cancel once submitted: invoice, bill, journal. */
+  cancel: Record<string, boolean>
+  /** May post draft journals into the books. */
+  post_journals: boolean
 }
 
 export interface Page<T> {

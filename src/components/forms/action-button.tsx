@@ -4,6 +4,8 @@ import { useTransition, type ComponentProps } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
+import { HoverLabel } from "@/components/forms/hover-label"
+import type { AppIcon } from "@/components/icons"
 import { LoadingButton } from "@/components/shared/loading-button"
 import type { ActionResult } from "@/lib/actions"
 
@@ -16,6 +18,7 @@ export function ActionButton({
   variant,
   size,
   goTo,
+  icon,
 }: {
   action: () => Promise<ActionResult>
   label: string
@@ -25,6 +28,8 @@ export function ActionButton({
   size?: ComponentProps<typeof LoadingButton>["size"]
   /** Where to go afterwards. Any {result} is replaced with what the action returned. */
   goTo?: string
+  /** Show this icon, with the label sliding out on hover, instead of the label alone. */
+  icon?: AppIcon
 }) {
   const router = useRouter()
   const [pending, start] = useTransition()
@@ -43,8 +48,8 @@ export function ActionButton({
     })
 
   const button = (
-    <LoadingButton loading={pending} variant={variant} size={size} onClick={confirm ? undefined : run}>
-      {label}
+    <LoadingButton loading={pending} variant={variant} size={size} onClick={confirm ? undefined : run} {...(icon ? { "aria-label": label, title: label, className: "gap-0 px-3" } : {})}>
+      {icon && !pending ? <HoverLabel icon={icon} label={label} /> : label}
     </LoadingButton>
   )
   return confirm ? <ConfirmDialog trigger={button} title={label} description={confirm} confirmLabel={label} onConfirm={run} /> : button

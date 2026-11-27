@@ -10,7 +10,9 @@ import { PrintLink } from "@/components/shared/print-link"
 import { PageHeader } from "@/components/shared/page-header"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { recordPayment, requestMpesa, retryEtims, submitInvoice } from "@/lib/actions"
+import { cancelRecord, recordPayment, requestMpesa, retryEtims, submitInvoice } from "@/lib/actions"
+import { DeleteButton } from "@/components/forms/delete-button"
+import { InvoiceForm, type InvoiceDraft, type InvoiceItemOption } from "@/components/invoices/invoice-form"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes } from "@/lib/format"
 import type { EmailRow, Invoice } from "@/lib/frappe/types"
@@ -24,6 +26,9 @@ interface Detail {
   mpesa_enabled: boolean
   pay_url: string
   etims_enabled: boolean
+  lines: InvoiceDraft["lines"]
+  draft: { due_date?: string; remarks?: string }
+  made_from: string | null
 }
 
 export default async function InvoicePage({ params }: { params: Promise<{ name: string }> }) {
@@ -34,6 +39,8 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
   const isDraft = invoice.docstatus === 0
   const owing = invoice.docstatus === 1 && invoice.outstanding_amount > 0
   const unsigned = invoice.docstatus === 1 && data.etims_enabled && !invoice.custom_sales_invoice_signed
+  const editable = isDraft && me.can.edit_invoices && !data.made_from
+  const options = editable ? await api<{ items: InvoiceItemOption[] }>("invoice_options") : null
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -42,6 +49,7 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
             <StatusBadge status={invoice.status} />
+            {options && <InvoiceForm items={options.items} invoice={{ name, customer: invoice.customer, posting_date: invoice.posting_date, due_date: data.draft.due_date, remarks: data.draft.remarks, lines: data.lines }} />}
             <ActionsMenu>
               <PrintLink kind="invoice" name={name} />
               {invoice.docstatus === 1 && me.mail.send.invoice && <EmailButton kind="invoice" name={name} label="Email invoice" />}
@@ -56,6 +64,10 @@ export default async function InvoicePage({ params }: { params: Promise<{ name: 
                 <FormDialog title="Send an M-Pesa request" description="The customer gets a prompt on their phone for the unpaid balance." triggerLabel="Request M-Pesa" submitLabel="Send request" success="Request sent to their phone" showPlus={false} variant="outline" fields={[{ name: "phone", label: "Phone", type: "tel", required: true, full: true, placeholder: "0712 345 678" }]} action={requestMpesa.bind(null, name)} />
               )}
               {unsigned && me.can.submit_invoices && <ActionButton variant="outline" label="Retry eTIMS" success="Sent to eTIMS again" action={retryEtims.bind(null, name)} />}
+              {isDraft && me.delete.invoice && <DeleteButton kind="invoice" name={name} what={`draft ${name}`} goTo="/invoices" />}
+              {invoice.docstatus === 1 && me.cancel.invoice && (
+                <ActionButton variant="outline" label="Cancel invoice" success="Invoice cancelled" confirm={`Cancel ${name}? It's taken out of the books. Any payment against it must be cancelled first.`} action={cancelRecord.bind(null, "invoice", name)} />
+              )}
             </ActionsMenu>
           </div>
         }

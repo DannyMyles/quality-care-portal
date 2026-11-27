@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { DeleteButton } from "@/components/forms/delete-button"
 import { ActionButton } from "@/components/forms/action-button"
 import { ClassFeedbackSection } from "@/components/feedback/class-feedback"
 import { otherCompany } from "@/components/shared/other-company"
@@ -60,6 +61,24 @@ export default async function BatchPage({ params }: { params: Promise<{ name: st
                 action={setStatus}
               />
             )}
+            {edit && (
+              <FormDialog
+                key={JSON.stringify(batch)}
+                title="Edit class"
+                triggerLabel="Edit class"
+                trigger="edit"
+                success="Class updated"
+                fields={[
+                  { name: "start_date", label: "Starts", type: "date", required: true, initial: batch.start_date },
+                  { name: "end_date", label: "Ends", type: "date", initial: batch.end_date ?? "" },
+                  { name: "venue", label: "Venue", full: true, initial: batch.venue ?? "" },
+                  { name: "standard_fee", label: "Fee per trainee (KES)", type: "number", initial: batch.standard_fee ?? "", hint: "For trainees added from now on. Each trainee's own fee is changed on their row." },
+                  { name: "cpd_points", label: "CPD points", type: "number", initial: batch.cpd_points ?? "" },
+                ]}
+                action={setStatus}
+              />
+            )}
+            {me.delete.class && !rows.some((row) => row.sales_invoice || row.certificate) && <DeleteButton kind="class" name={name} what={`this ${batch.course_name ?? batch.course} class`} goTo="/batches" />}
           </>
         }
       />

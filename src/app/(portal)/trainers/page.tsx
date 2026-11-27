@@ -1,4 +1,7 @@
+import Link from "next/link"
 import { RankedBars } from "@/components/charts/bars"
+import { FormDialog } from "@/components/forms/form-dialog"
+import { createTrainer } from "@/lib/actions"
 import { otherCompany } from "@/components/shared/other-company"
 import { ChartCard } from "@/components/charts/chart-card"
 import { Teacher, Wallet, ReceiptText } from "@/components/icons"
@@ -43,7 +46,7 @@ export default async function TrainersPage({ searchParams }: { searchParams: Pro
   const sum = (key: "due" | "wht" | "paid") => data.summary.reduce((total, row) => total + row[key], 0)
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Trainers & WHT" description={`Trainer fees and 5% withholding tax. ${held}These records don't post to the ledger.`} actions={<>{params.trainer && <PrintLink statement="supplier" name={params.trainer} from={chosen?.from} to={chosen?.to} label={`Print ${params.trainer}'s statement`} />}<PrintLink report="trainer-wht" from={chosen?.from} to={chosen?.to} label="Print WHT report" /></>} />
+      <PageHeader title="Trainers & WHT" description={`Trainer fees and 5% withholding tax. ${held}These records don't post to the ledger.`} actions={<>{me.can.add_suppliers && <FormDialog title="New trainer" description="Set up as a supplier in the Trainers group, so their bills have 5% withholding tax taken off." triggerLabel="New trainer" trigger="add" success="Trainer added" fields={[{ name: "supplier_name", label: "Full name", required: true, full: true }, { name: "tax_id", label: "KRA PIN", full: true, placeholder: "A123456789Z", hint: "Needed on the withholding tax return." }]} action={createTrainer} />}{me.can.suppliers && <Link prefetch={false} href="/suppliers?group=Trainers" className="inline-flex h-9 items-center rounded-lg border border-[#E3E5F1] bg-white px-3 text-[13px] font-medium text-[#2E3094] hover:bg-[#F3F4FB]">Edit trainers</Link>}{params.trainer && <PrintLink statement="supplier" name={params.trainer} from={chosen?.from} to={chosen?.to} label={`Print ${params.trainer}'s statement`} />}<PrintLink report="trainer-wht" from={chosen?.from} to={chosen?.to} label="Print WHT report" /></>} />
       <FilterBar>
         <PeriodFilter years={data.years} defaultLabel="All records" />
       </FilterBar>

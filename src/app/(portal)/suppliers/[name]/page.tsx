@@ -2,6 +2,7 @@ import { DetailList } from "@/components/shared/detail-list"
 import { EmailButton } from "@/components/email/email-button"
 import { EmailHistory } from "@/components/email/email-history"
 import { PageHeader } from "@/components/shared/page-header"
+import { DeleteButton } from "@/components/forms/delete-button"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordLink, RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
@@ -29,7 +30,7 @@ export default async function SupplierPage({ params }: { params: Promise<{ name:
   const data = await api<Detail>("supplier", { params: { name } })
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader title={data.supplier_name} description={data.supplier_group} actions={<div className="flex flex-wrap gap-2"><PrintLink statement="supplier" name={name} label="Print statement" />{me.mail.send.supplier && <EmailButton kind="supplier" name={name} label="Email statement" />}</div>} />
+      <PageHeader title={data.supplier_name} description={data.supplier_group} actions={<div className="flex flex-wrap gap-2"><PrintLink statement="supplier" name={name} label="Print statement" />{me.mail.send.supplier && <EmailButton kind="supplier" name={name} label="Email statement" />}{me.delete.supplier && <DeleteButton kind="supplier" name={name} what={data.supplier_name} goTo="/suppliers" />}</div>} />
       <DetailList
         rows={[
           { label: "Type", value: data.supplier_type },

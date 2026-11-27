@@ -3,10 +3,11 @@ import { Users } from "@/components/icons"
 import { FormDialog, type FormField } from "@/components/forms/form-dialog"
 import { FilterBar, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
+import { DeleteButton } from "@/components/forms/delete-button"
 import { PrintLink } from "@/components/shared/print-link"
 import { EmailButton } from "@/components/email/email-button"
 import { RecordTable, type Column } from "@/components/shared/record-table"
-import { createCustomer } from "@/lib/actions"
+import { createCustomer, updateCustomer } from "@/lib/actions"
 import { api, getMe } from "@/lib/frappe/client"
 import { formatKes, pageOf } from "@/lib/format"
 import type { Customer, Page } from "@/lib/frappe/types"
@@ -43,6 +44,27 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         ]
       : []),
   ]
+  if (me.can.edit_customers || me.delete.customer) {
+    columns.push({
+      header: "",
+      cell: (row: Customer) => (
+        <span className="flex items-center gap-1">
+          {me.can.edit_customers && (
+            <FormDialog
+              key={JSON.stringify(row)}
+              title={`Edit ${row.customer_name}`}
+              triggerLabel={`Edit ${row.customer_name}`}
+              trigger="edit"
+              success="Customer saved"
+              fields={fields.map((field) => ({ ...field, initial: (row as unknown as Record<string, string | undefined>)[field.name] ?? field.initial ?? "" }))}
+              action={updateCustomer.bind(null, row.name)}
+            />
+          )}
+          {me.delete.customer && <DeleteButton kind="customer" name={row.name} what={row.customer_name} goTo="/customers" size="sm" />}
+        </span>
+      ),
+    })
+  }
   const add = me.can.edit_customers ? <FormDialog title="New customer" triggerLabel="New customer" trigger="add" success="Customer saved" fields={fields} action={createCustomer} /> : null
   return (
     <div>
