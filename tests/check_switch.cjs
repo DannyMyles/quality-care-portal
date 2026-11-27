@@ -59,6 +59,12 @@ const MARKERS = {
 ;(async () => {
   const browser = await chromium.launch({ executablePath: "/usr/bin/google-chrome", headless: true })
   const sole = await session(browser, "sole@test.local")
+  // Quality Care has a Kopo Kopo till channel (switched off), so its M-Pesa page shows; Highlead has none.
+  {
+    const admin = (await browser.newContext()).request
+    await admin.post(FRAPPE + "/api/method/login", { form: { usr: "Administrator", pwd: "admin" } })
+    await admin.post(FRAPPE + "/api/resource/QC Payment Channel", { data: { channel_name: "Switch test till", provider: "Kopo Kopo", enabled: 0, environment: "Sandbox", shortcode: "556677", payment_account: "1119 - Kopo Kopo Till - QC" } })
+  }
 
   // Every page, in each company
   for (const [company, mine, theirs, wanted, unwanted] of [[QC, QC_ONLY, HL_ONLY, QC_MENU, HL_MENU], [HL, HL_ONLY, QC_ONLY, HL_MENU, QC_MENU]]) {
