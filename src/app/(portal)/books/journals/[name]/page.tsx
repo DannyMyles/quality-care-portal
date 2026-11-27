@@ -3,7 +3,10 @@ import { PageHeader } from "@/components/shared/page-header"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordTable } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
-import { api } from "@/lib/frappe/client"
+import { api, getMe } from "@/lib/frappe/client"
+import { ActionButton } from "@/components/forms/action-button"
+import { DeleteButton } from "@/components/forms/delete-button"
+import { cancelRecord, submitJournal } from "@/lib/actions"
 import { formatDate, formatKes } from "@/lib/format"
 
 interface Entry {
@@ -20,6 +23,7 @@ interface Entry {
 export default async function JournalEntryPage({ params }: { params: Promise<{ name: string }> }) {
   const name = decodeURIComponent((await params).name)
   const entry = await api<Entry>("journal_entry", { params: { name } })
+  const me = await getMe()
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
@@ -27,15 +31,18 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ n
         description={`${entry.voucher_type} · ${formatDate(entry.posting_date)}`}
         actions={
           <>
-            <StatusBadge status={entry.docstatus === 0 ? "Draft" : "Posted"} />
+            <StatusBadge status={entry.docstatus === 0 ? "Draft" : entry.docstatus === 2 ? "Cancelled" : "Posted"} />
             <PrintLink kind="journal" name={name} />
+            {entry.docstatus === 0 && me.post_journals && <ActionButton label="Post to the books" success="Journal posted" confirm={`Post ${name} into the books? Check its lines first: once posted it can only be cancelled.`} action={submitJournal.bind(null, name)} />}
+            {entry.docstatus === 0 && me.delete.journal && <DeleteButton kind="journal" name={name} what={`draft journal ${name}`} goTo="/books/journals" />}
+            {entry.docstatus === 1 && me.cancel.journal && <ActionButton variant="outline" label="Cancel journal" success="Journal cancelled" confirm={`Cancel ${name}? Its lines are taken out of the books.`} action={cancelRecord.bind(null, "journal", name)} />}
           </>
         }
       />
       {entry.docstatus === 0 && (
         <p className="flex items-start gap-2.5 rounded-xl bg-[#F5C400]/20 px-4 py-3 text-sm">
           <InfoIcon className="mt-0.5 size-4 shrink-0" />
-          This draft isn&apos;t in the books or the dashboard. Review it and post it from the full system if it&apos;s right.
+          This draft isn&apos;t in the books or the dashboard yet. Review it, then post it if it&apos;s right.
         </p>
       )}
       {entry.user_remark && <p className="max-w-3xl text-sm text-[#5E6182]">{entry.user_remark}</p>}

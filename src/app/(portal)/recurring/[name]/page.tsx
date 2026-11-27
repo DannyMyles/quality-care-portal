@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/forms/action-button"
+import { DeleteButton } from "@/components/forms/delete-button"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { DetailList } from "@/components/shared/detail-list"
 import { PageHeader } from "@/components/shared/page-header"
@@ -53,6 +54,7 @@ export default async function RecurringChargePage({ params }: { params: Promise<
                 action={setActive.bind(null, charge.active ? 0 : 1)}
               />
             )}
+            {me.delete.recurring && invoices.length === 0 && <DeleteButton kind="recurring" name={name} what={`the recurring charge for ${charge.customer}`} goTo="/recurring" />}
             {me.can.edit_recurring && <FormDialog key={JSON.stringify(charge)} title="Change recurring charge" triggerLabel="Edit" trigger="edit" success="Recurring charge saved" fields={chargeFields(options, charge)} action={update} />}
           </>
         }

@@ -1,11 +1,12 @@
 import { ReceiptText } from "@/components/icons"
 import { FilterBar, PeriodFilter, SearchFilter, SelectFilter } from "@/components/shared/filters"
 import { PageHeader } from "@/components/shared/page-header"
+import { InvoiceForm, type InvoiceItemOption } from "@/components/invoices/invoice-form"
 import { PrintLink } from "@/components/shared/print-link"
 import { RecordLink, RecordTable, type Column } from "@/components/shared/record-table"
 import { StatusBadge } from "@/components/shared/status-badge"
 import { StatusTabs } from "@/components/shared/status-tabs"
-import { api } from "@/lib/frappe/client"
+import { api, getMe } from "@/lib/frappe/client"
 import { formatDate, formatKes, pageOf } from "@/lib/format"
 import type { Invoice, Page } from "@/lib/frappe/types"
 import { readPeriod } from "@/lib/period"
@@ -24,10 +25,12 @@ export default async function InvoicesPage({ searchParams }: { searchParams: Pro
   const params = await searchParams
   const { page, start, limit } = pageOf(params)
   const chosen = readPeriod(params)
+  const me = await getMe()
+  const options = me.can.make_invoices ? await api<{ items: InvoiceItemOption[] }>("invoice_options") : null
   const data = await api<Page<Invoice> & { years: string[] }>("invoices", { params: { status: params.status, customer: params.customer, search: params.search, source: params.source, from_date: chosen?.from, to_date: chosen?.to, start, limit } })
   return (
     <div>
-      <PageHeader title="Invoices" description="Invoices start as drafts from a class or a tractor job. Accounts submits them and records payment." />
+      <PageHeader title="Invoices" description="Make an invoice here, or from a class, tractor job, hire or recurring charge. It starts as a draft; Accounts submits it and records payment." actions={options ? <InvoiceForm items={options.items} /> : null} />
       <StatusTabs path="/invoices" current={params.status} keep={params} options={["", "Draft", "Unpaid", "Overdue", "Paid", "Credit Notes"].map((value) => ({ value, label: value || "All" }))} />
       <FilterBar>
         <SearchFilter placeholder="Search by number or customer" />

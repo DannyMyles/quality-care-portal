@@ -1,4 +1,5 @@
 import { traineeFields } from "@/components/forms/fields"
+import { DeleteButton } from "@/components/forms/delete-button"
 import { otherCompany } from "@/components/shared/other-company"
 import { ActionButton } from "@/components/forms/action-button"
 import { FormDialog } from "@/components/forms/form-dialog"
@@ -56,6 +57,7 @@ export default async function TraineePage({ params }: { params: Promise<{ name: 
                 action={update}
               />
             )}
+            {me.delete.trainee && <DeleteButton kind="trainee" name={name} what={trainee.full_name} goTo="/trainees" />}
           </>
         }
       />

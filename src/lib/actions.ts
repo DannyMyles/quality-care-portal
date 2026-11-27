@@ -326,3 +326,15 @@ export async function billFromEmail(name: string, values: FormValues): Promise<A
   const result = await run<{ name: string }>("bill_from_email", { name, ...clean(values) })
   return result.ok ? { ok: true, data: result.data.name } : result
 }
+
+// Creating, changing, cancelling and deleting records
+export const deleteRecord = async (kind: string, name: string) => run<string>("delete_record", { kind, name })
+export const cancelRecord = async (kind: string, name: string) => run<string>("cancel_record", { kind, name })
+export const saveInvoice = async (data: Record<string, unknown>) => run<string>("save_invoice", { data })
+export const updateBill = async (name: string, values: FormValues) => run<{ name: string }>("update_bill", { name, ...clean(values) })
+export const saveItem = async (values: FormValues) => run<string>("save_item", { data: values })
+export const setItemActive = async (name: string, active: boolean) => run("set_item_active", { name, active: active ? 1 : 0 })
+export const updateCustomer = async (name: string, values: FormValues) => run<string>("update_customer", { name, ...values })
+export const createTrainer = async (values: FormValues) =>
+  run<string>("create_supplier", { supplier_name: values.supplier_name, supplier_group: "Trainers", supplier_type: "Individual", tax_id: values.tax_id || undefined, tax_withholding_category: "WHT 5% Professional Fees" })
+export const submitJournal = async (name: string) => run<string>("submit_journal", { name })

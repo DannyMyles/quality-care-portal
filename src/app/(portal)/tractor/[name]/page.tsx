@@ -1,4 +1,5 @@
 import { ActionButton } from "@/components/forms/action-button"
+import { DeleteButton } from "@/components/forms/delete-button"
 import { otherCompany } from "@/components/shared/other-company"
 import { FormDialog } from "@/components/forms/form-dialog"
 import { DetailList } from "@/components/shared/detail-list"
@@ -40,6 +41,7 @@ export default async function TractorJobPage({ params }: { params: Promise<{ nam
                 action={updateTractorLog.bind(null, name)}
               />
             )}
+            {!job.sales_invoice && job.status !== "Booked" && me.delete.tractor && <DeleteButton kind="tractor" name={name} what={`tractor job ${name}`} goTo="/tractor" />}
           </>
         }
       />
